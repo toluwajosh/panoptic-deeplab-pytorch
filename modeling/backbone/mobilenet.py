@@ -90,7 +90,7 @@ class InvertedResidual(nn.Module):
 
 class MobileNetV2(nn.Module):
     def __init__(
-        self, output_stride=8, BatchNorm=None, width_mult=1.0, pretrained=True
+        self, output_stride=8, BatchNorm=None, width_mult=1.0, pretrained=True,
     ):
         super(MobileNetV2, self).__init__()
         block = InvertedResidual
@@ -185,6 +185,82 @@ class MobileNetV2(nn.Module):
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
+
+
+class MobileNetV2_3Stage(MobileNetV2):
+    def __init__(
+        self, output_stride=8, BatchNorm=None, width_mult=1.0, pretrained=True
+    ):
+        super(MobileNetV2, self).__init__()
+        block = InvertedResidual
+        input_channel = 32
+        current_stride = 1
+        rate = 1
+        interverted_residual_setting = [
+            # t, c, n, s
+            [1, 16, 1, 1],
+            [6, 24, 2, 2],
+            [6, 32, 3, 2],
+            [6, 64, 4, 2],
+            [6, 96, 3, 1],
+            [6, 160, 3, 2],
+            [6, 320, 1, 1],
+        ]
+
+        # building first layer
+        input_channel = int(input_channel * width_mult)
+        self.features = [conv_bn(3, input_channel, 2, BatchNorm)]
+        current_stride *= 2
+        # building inverted residual blocks
+        for t, c, n, s in interverted_residual_setting:
+            if current_stride == output_stride:
+                stride = 1
+                dilation = rate
+                rate *= s
+            else:
+                stride = s
+                dilation = 1
+                current_stride *= s
+            output_channel = int(c * width_mult)
+            for i in range(n):
+                if i == 0:
+                    self.features.append(
+                        block(
+                            input_channel,
+                            output_channel,
+                            stride,
+                            dilation,
+                            t,
+                            BatchNorm,
+                        )
+                    )
+                else:
+                    self.features.append(
+                        block(
+                            input_channel,
+                            output_channel,
+                            1,
+                            dilation,
+                            t,
+                            BatchNorm,
+                        )
+                    )
+                input_channel = output_channel
+        self.features = nn.Sequential(*self.features)
+        self._initialize_weights()
+
+        if pretrained:
+            self._load_pretrained_model()
+
+        self.low_level_features = self.features[0:4]
+        self.mid_level_features = self.features[4:5]
+        self.high_level_features = self.features[5:]
+
+    def forward(self, x):
+        low_level_feat = self.low_level_features(x)
+        mid_level_feat = self.mid_level_features(low_level_feat)
+        x = self.high_level_features(mid_level_feat)
+        return x, mid_level_feat, low_level_feat
 
 
 if __name__ == "__main__":

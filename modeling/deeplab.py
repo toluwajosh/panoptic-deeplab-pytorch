@@ -35,10 +35,17 @@ class DeepLab(nn.Module):
     def forward(self, input):
         x, low_level_feat = self.backbone(input)
         x = self.aspp(x)
+        print("\nlow level feat shape: ", low_level_feat.shape)
+        print("x shape after aspp: ", x.shape)
         x = self.decoder(x, low_level_feat)
+
+        print("x shape after decoder: ", x.shape)
         x = F.interpolate(
             x, size=input.size()[2:], mode="bilinear", align_corners=True
         )
+
+        print("x shape final: ", x.shape)
+        exit(0)
 
         return x
 
@@ -94,3 +101,9 @@ if __name__ == "__main__":
     input = torch.rand(1, 3, 513, 513)
     output = model(input)
     print(output.size())
+
+    """
+    x shape after aspp:  torch.Size([4, 256, 33, 33])
+    x shape after decoder:  torch.Size([4, 21, 129, 129])
+    x shape final:  torch.Size([4, 21, 513, 513])
+    """
