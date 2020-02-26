@@ -8,7 +8,7 @@ from modeling.panoptic_decoder import build_decoder as build_decoder
 from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 
 
-class DeepLab(nn.Module):
+class PanopticDeepLab(nn.Module):
     def __init__(
         self,
         backbone="resnet",
@@ -17,7 +17,7 @@ class DeepLab(nn.Module):
         sync_bn=True,
         freeze_bn=False,
     ):
-        super(DeepLab, self).__init__()
+        super(PanopticDeepLab, self).__init__()
         if backbone == "drn":
             output_stride = 8
 
@@ -85,6 +85,10 @@ class DeepLab(nn.Module):
             mode="bilinear",
             align_corners=True,
         )
+
+        x_semantic = self.semantic_predict(x_semantic)
+        x_center_predict = self.instance_center_predict(x_panoptic)
+        x_center_regress = self.instance_center_regress(x_panoptic)
         exit(0)
         return x
 

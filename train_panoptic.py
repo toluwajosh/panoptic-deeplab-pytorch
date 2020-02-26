@@ -37,7 +37,7 @@ class Trainer(object):
         ) = make_data_loader(args, **kwargs)
 
         # Define network
-        model = DeepLab(
+        model = PanopticDeepLab(
             num_classes=self.nclass,
             backbone=args.backbone,
             output_stride=args.out_stride,
@@ -234,7 +234,7 @@ class Trainer(object):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="PyTorch DeeplabV3Plus Training"
+        description="PyTorch Panoptic Deeplab Training"
     )
     parser.add_argument(
         "--backbone",
@@ -462,7 +462,7 @@ def main():
         )
 
     if args.checkname is None:
-        args.checkname = "deeplab-" + str(args.backbone)
+        args.checkname = "panoptic-deeplab-" + str(args.backbone)
     print(args)
     torch.manual_seed(args.seed)
     trainer = Trainer(args)
