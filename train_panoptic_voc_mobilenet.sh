@@ -7,6 +7,7 @@ python train_panoptic.py \
 --batch-size 2 \
 --checkname panoptic-deeplab-mobilenet \
 --eval-interval 1 \
+--use-balanced-weights \
 --dataset pascal
 
 # --start_epoch 8 \
@@ -17,3 +18,6 @@ python train_panoptic.py \
 # --ft # must be used with --resume
 # CUDA_VISIBLE_DEVICES=0,1,2,3
 # --gpu-ids 0,1,2,3 \
+
+# to run single scripts, add root directory to python path
+# export PYTHONPATH=~/codes/pytorch-deeplab-xception/:$PYTHONPATH

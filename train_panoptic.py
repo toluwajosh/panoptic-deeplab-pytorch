@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 
 from dataloaders import make_data_loader
-from modeling.panoptic_deeplab import *
+from modeling.panoptic_deeplab import PanopticDeepLab
 from modeling.sync_batchnorm.replicate import patch_replication_callback
 from mypath import Path
 from utils.calculate_weights import calculate_weigths_labels
