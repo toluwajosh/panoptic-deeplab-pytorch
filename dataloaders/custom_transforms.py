@@ -28,8 +28,18 @@ class Normalize(object):
             return {"image": img, "label": mask}
         else:
             center = sample["center"]
+            x_reg = sample["x_reg"]
+            y_reg = sample["y_reg"]
             center = np.array(center).astype(np.float32)
-            return {"image": img, "label": mask, "center": center}
+            x_reg = np.array(x_reg).astype(np.float32)
+            y_reg = np.array(y_reg).astype(np.float32)
+            return {
+                "image": img,
+                "label": mask,
+                "center": center,
+                "x_reg": x_reg,
+                "y_reg": y_reg,
+            }
 
 
 class ToTensor(object):
@@ -51,9 +61,21 @@ class ToTensor(object):
             return {"image": img, "label": mask}
         else:
             center = sample["center"]
+            x_reg = sample["x_reg"]
+            y_reg = sample["y_reg"]
             center = np.array(center).astype(np.float32)
+            x_reg = np.array(x_reg).astype(np.float32)
+            y_reg = np.array(y_reg).astype(np.float32)
             center = torch.from_numpy(center).float()
-            return {"image": img, "label": mask, "center": center}
+            x_reg = torch.from_numpy(x_reg).float()
+            y_reg = torch.from_numpy(y_reg).float()
+            return {
+                "image": img,
+                "label": mask,
+                "center": center,
+                "x_reg": x_reg,
+                "y_reg": y_reg,
+            }
 
 
 class RandomHorizontalFlip(object):
@@ -62,11 +84,21 @@ class RandomHorizontalFlip(object):
         mask = sample["label"]
         if "center" in sample.keys():
             center = sample["center"]
+            x_reg = sample["x_reg"]
+            y_reg = sample["y_reg"]
             if random.random() < 0.5:
                 img = img.transpose(Image.FLIP_LEFT_RIGHT)
                 mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
                 center = center.transpose(Image.FLIP_LEFT_RIGHT)
-            return {"image": img, "label": mask, "center": center}
+                x_reg = x_reg.transpose(Image.FLIP_LEFT_RIGHT)
+                y_reg = y_reg.transpose(Image.FLIP_LEFT_RIGHT)
+            return {
+                "image": img,
+                "label": mask,
+                "center": center,
+                "x_reg": x_reg,
+                "y_reg": y_reg,
+            }
         else:
             if random.random() < 0.5:
                 img = img.transpose(Image.FLIP_LEFT_RIGHT)
@@ -97,7 +129,15 @@ class RandomGaussianBlur(object):
 
         if "center" in sample.keys():
             center = sample["center"]
-            return {"image": img, "label": mask, "center": center}
+            x_reg = sample["x_reg"]
+            y_reg = sample["y_reg"]
+            return {
+                "image": img,
+                "label": mask,
+                "center": center,
+                "x_reg": x_reg,
+                "y_reg": y_reg,
+            }
         else:
             return {"image": img, "label": mask}
 

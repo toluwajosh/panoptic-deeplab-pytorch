@@ -74,9 +74,17 @@ class VOCSegmentation(Dataset):
 
     def __getitem__(self, index):
         # _img, _target = self._make_img_gt_point_pair(index)
-        _img, _target, _centers = self._make_data_set(index)
+        _img, _target, _centers, x_reg, y_reg = self._make_data_set(index)
         _centers = Image.fromarray(np.uint8(_centers * 255))
-        sample = {"image": _img, "label": _target, "center": _centers}
+        x_reg = Image.fromarray(np.uint8(x_reg))
+        y_reg = Image.fromarray(np.uint8(y_reg))
+        sample = {
+            "image": _img,
+            "label": _target,
+            "center": _centers,
+            "x_reg": x_reg,
+            "y_reg": y_reg,
+        }
 
         for split in self.split:
             if split == "train":
@@ -84,22 +92,40 @@ class VOCSegmentation(Dataset):
             elif split == "val":
                 return self.transform_val(sample)
 
-    def load_bbox_centers_image(self, annotation_file, size):
+    def load_centers_and_regression(self, annotation_file, size):
         annotation_bbox = parse_object_bbox(annotation_file)
         # we need to know the size of image
-        blank = np.ones([size[1], size[0]])
+        centers_image = np.ones([size[1], size[0]])
+        x_reg = np.zeros([size[1], size[0]])
+        y_reg = np.zeros([size[1], size[0]])
         for center in annotation_bbox:
             # replace path with 2d gaussian
             x0 = int(center["xmin"])
             x1 = int(center["xmax"])
             y0 = int(center["ymin"])
             y1 = int(center["ymax"])
-            h = y1 - y0
+            if (x1 - x0) % 2 != 0:
+                x1 -= 1
+            if (y1 - y0) % 2 != 0:
+                y1 -= 1
+
             w = x1 - x0
+            h = y1 - y0
+
+            c_x = w // 2
+            c_y = h // 2
 
             gaussian_patch = make_gaussian([w, h], 8)
-            blank[y0:y1, x0:x1] -= gaussian_patch
-        return blank
+            centers_image[y0:y1, x0:x1] -= gaussian_patch
+
+            x_patch = np.tile(np.arange(-c_x, c_x), (h, 1))
+            y_patch = np.tile(np.arange(-c_y, c_y), (w, 1)).T
+
+            # x_patch = (np.ones_like(gaussian_patch) * w) - c_x
+            x_reg[y0:y1, x0:x1] = np.maximum(x_reg[y0:y1, x0:x1], x_patch)
+            # y_patch = (np.ones_like(gaussian_patch) * h) - c_y
+            y_reg[y0:y1, x0:x1] = np.maximum(y_reg[y0:y1, x0:x1], y_patch)
+        return centers_image, x_reg, y_reg
 
     def _make_img_gt_point_pair(self, index):
         _img = Image.open(self.images[index]).convert("RGB")
@@ -111,11 +137,11 @@ class VOCSegmentation(Dataset):
         _img = Image.open(self.images[index]).convert("RGB")
         _target = Image.open(self.categories[index])
 
-        _centers_image = self.load_bbox_centers_image(
+        _centers_image, x_reg, y_reg = self.load_centers_and_regression(
             self.annotations[index], _img.size
         )
 
-        return _img, _target, _centers_image
+        return _img, _target, _centers_image, x_reg, y_reg
 
     def transform_tr(self, sample):
         composed_transforms = transforms.Compose(
@@ -174,7 +200,8 @@ if __name__ == "__main__":
         for jj in range(sample["image"].size()[0]):
             img = sample["image"].numpy()
             gt = sample["label"].numpy()
-            cen = sample["center"].numpy()[0]
+            # cen = sample["center"].numpy()[0]
+            cen = sample["y_reg"].numpy()[0]
             tmp = np.array(gt[jj]).astype(np.uint8)
             segmap = decode_segmap(tmp, dataset="pascal")
             img_tmp = np.transpose(img[jj], axes=[1, 2, 0])
