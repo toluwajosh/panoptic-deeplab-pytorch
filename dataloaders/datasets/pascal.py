@@ -121,9 +121,7 @@ class VOCSegmentation(Dataset):
             x_patch = np.tile(np.arange(-c_x, c_x), (h, 1))
             y_patch = np.tile(np.arange(-c_y, c_y), (w, 1)).T
 
-            # x_patch = (np.ones_like(gaussian_patch) * w) - c_x
             x_reg[y0:y1, x0:x1] = np.maximum(x_reg[y0:y1, x0:x1], x_patch)
-            # y_patch = (np.ones_like(gaussian_patch) * h) - c_y
             y_reg[y0:y1, x0:x1] = np.maximum(y_reg[y0:y1, x0:x1], y_patch)
         return centers_image, x_reg, y_reg
 
