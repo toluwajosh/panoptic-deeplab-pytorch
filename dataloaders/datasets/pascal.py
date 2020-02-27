@@ -7,6 +7,9 @@ from mypath import Path
 from torchvision import transforms
 from dataloaders import custom_transforms as tr
 
+from read_from_xml import parse_object_bbox
+from make_gaussian import make_gaussian
+
 
 class VOCSegmentation(Dataset):
     """
@@ -27,6 +30,7 @@ class VOCSegmentation(Dataset):
         self._base_dir = base_dir
         self._image_dir = os.path.join(self._base_dir, "JPEGImages")
         self._cat_dir = os.path.join(self._base_dir, "SegmentationClass")
+        self._annot_dir = os.path.join(self._base_dir, "Annotations")
 
         if isinstance(split, str):
             self.split = [split]
@@ -41,6 +45,7 @@ class VOCSegmentation(Dataset):
         self.im_ids = []
         self.images = []
         self.categories = []
+        self.annotations = []
 
         for splt in self.split:
             with open(
@@ -51,11 +56,13 @@ class VOCSegmentation(Dataset):
             for ii, line in enumerate(lines):
                 _image = os.path.join(self._image_dir, line + ".jpg")
                 _cat = os.path.join(self._cat_dir, line + ".png")
+                _annot = os.path.join(self._annot_dir, line + ".xml")
                 assert os.path.isfile(_image)
                 assert os.path.isfile(_cat)
                 self.im_ids.append(line)
                 self.images.append(_image)
                 self.categories.append(_cat)
+                self.annotations.append(_annot)
 
         assert len(self.images) == len(self.categories)
 
@@ -66,8 +73,10 @@ class VOCSegmentation(Dataset):
         return len(self.images)
 
     def __getitem__(self, index):
-        _img, _target = self._make_img_gt_point_pair(index)
-        sample = {"image": _img, "label": _target}
+        # _img, _target = self._make_img_gt_point_pair(index)
+        _img, _target, _centers = self._make_data_set(index)
+        _centers = Image.fromarray(np.uint8(_centers * 255))
+        sample = {"image": _img, "label": _target, "center": _centers}
 
         for split in self.split:
             if split == "train":
@@ -75,20 +84,47 @@ class VOCSegmentation(Dataset):
             elif split == "val":
                 return self.transform_val(sample)
 
+    def load_bbox_centers_image(self, annotation_file, size):
+        annotation_bbox = parse_object_bbox(annotation_file)
+        # we need to know the size of image
+        blank = np.ones([size[1], size[0]])
+        for center in annotation_bbox:
+            # replace path with 2d gaussian
+            x0 = int(center["xmin"])
+            x1 = int(center["xmax"])
+            y0 = int(center["ymin"])
+            y1 = int(center["ymax"])
+            h = y1 - y0
+            w = x1 - x0
+
+            gaussian_patch = make_gaussian([w, h], 8)
+            blank[y0:y1, x0:x1] -= gaussian_patch
+        return blank
+
     def _make_img_gt_point_pair(self, index):
         _img = Image.open(self.images[index]).convert("RGB")
         _target = Image.open(self.categories[index])
 
         return _img, _target
 
+    def _make_data_set(self, index):
+        _img = Image.open(self.images[index]).convert("RGB")
+        _target = Image.open(self.categories[index])
+
+        _centers_image = self.load_bbox_centers_image(
+            self.annotations[index], _img.size
+        )
+
+        return _img, _target, _centers_image
+
     def transform_tr(self, sample):
         composed_transforms = transforms.Compose(
             [
                 tr.RandomHorizontalFlip(),
-                tr.RandomScaleCrop(
-                    base_size=self.args.base_size,
-                    crop_size=self.args.crop_size,
-                ),
+                # tr.RandomScaleCrop(
+                #     base_size=self.args.base_size,
+                #     crop_size=self.args.crop_size,
+                # ),
                 tr.RandomGaussianBlur(),
                 tr.Normalize(
                     mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
@@ -131,13 +167,14 @@ if __name__ == "__main__":
     voc_train = VOCSegmentation(args, split="train")
 
     dataloader = DataLoader(
-        voc_train, batch_size=5, shuffle=True, num_workers=0
+        voc_train, batch_size=1, shuffle=True, num_workers=0
     )
 
-    for ii, sample in enumerate(dataloader):
+    for ii, sample in enumerate(dataloader, 1):
         for jj in range(sample["image"].size()[0]):
             img = sample["image"].numpy()
             gt = sample["label"].numpy()
+            cen = sample["center"].numpy()[0]
             tmp = np.array(gt[jj]).astype(np.uint8)
             segmap = decode_segmap(tmp, dataset="pascal")
             img_tmp = np.transpose(img[jj], axes=[1, 2, 0])
@@ -145,12 +182,15 @@ if __name__ == "__main__":
             img_tmp += (0.485, 0.456, 0.406)
             img_tmp *= 255.0
             img_tmp = img_tmp.astype(np.uint8)
+            cen = cen.astype(np.uint8)
             plt.figure()
             plt.title("display")
-            plt.subplot(211)
+            plt.subplot(311)
             plt.imshow(img_tmp)
-            plt.subplot(212)
+            plt.subplot(312)
             plt.imshow(segmap)
+            plt.subplot(313)
+            plt.imshow(cen)
 
         if ii == 1:
             break

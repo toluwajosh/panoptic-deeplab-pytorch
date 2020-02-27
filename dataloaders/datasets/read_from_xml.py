@@ -34,13 +34,37 @@ def etree_to_dict(t):
     return d
 
 
+def parse_object_bbox(tree_xml_path):
+    """Parse an xml annotation to objects bounding box
+
+    Arguments:
+        tree_xml_path {str} -- xml file path
+
+    Returns:
+        list -- list of bounding box elements
+    """
+    tree_root = ET.parse(tree_xml_path).getroot()
+    tree_dict = etree_to_dict(tree_root)
+    data_object = tree_dict["annotation"]["object"]
+    bbox_list = []
+    if isinstance(data_object, dict):
+        for bb_key in data_object:
+            if bb_key == "bndbox":
+                bbox_list.append(data_object[bb_key])
+    else:
+        print("multiple")
+        for object_instance in data_object:
+            bbox_list.append(object_instance["bndbox"])
+    return bbox_list
+
+
 if __name__ == "__main__":
     from pprint import pprint
 
     # An example of function usage
     # for the case of single and multiple objects
-    tree_root = ET.parse("dataloaders/datasets/2008_007069.xml").getroot()
-    # tree_root = ET.parse("dataloaders/datasets/2007_000027.xml").getroot()
+    # tree_root = ET.parse("dataloaders/datasets/2008_007069.xml").getroot()
+    tree_root = ET.parse("dataloaders/datasets/2007_000027.xml").getroot()
 
     data_dict = etree_to_dict(tree_root)
     data_object = data_dict["annotation"]["object"]
