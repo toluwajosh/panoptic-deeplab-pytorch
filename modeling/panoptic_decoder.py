@@ -29,7 +29,7 @@ class Decoder(nn.Module):
             nn.Dropout(0.5),
         )
 
-        in_ch_2 = 256 + low_level_inplanes
+        in_ch_2 = 256 + 32
         out_ch_2 = 256
         self.conv_2 = nn.Sequential(
             nn.Conv2d(
@@ -45,7 +45,7 @@ class Decoder(nn.Module):
             nn.Dropout(0.5),
         )
 
-        in_ch_3 = 256 + 32
+        in_ch_3 = 256 + low_level_inplanes
         out_ch_3 = num_classes
         self.conv_3 = nn.Sequential(
             nn.Conv2d(
@@ -74,19 +74,19 @@ class Decoder(nn.Module):
         x = self.conv_1(x)
         x = F.interpolate(
             x,
-            size=low_level_feat.size()[2:],
-            mode="bilinear",
-            align_corners=True,
-        )
-        x = torch.cat((x, low_level_feat), dim=1)
-        x = self.conv_2(x)
-        x = F.interpolate(
-            x,
             size=mid_level_feat.size()[2:],
             mode="bilinear",
             align_corners=True,
         )
         x = torch.cat((x, mid_level_feat), dim=1)
+        x = self.conv_2(x)
+        x = F.interpolate(
+            x,
+            size=low_level_feat.size()[2:],
+            mode="bilinear",
+            align_corners=True,
+        )
+        x = torch.cat((x, low_level_feat), dim=1)
         x = self.conv_3(x)
         return x
 

@@ -38,6 +38,10 @@ class PanopticDeepLab(nn.Module):
 
         self.semantic_predict = nn.Sequential(
             nn.Conv2d(
+                256, 256, kernel_size=5, stride=1, padding=1, bias=False,
+            ),
+            nn.ReLU(),
+            nn.Conv2d(
                 256,
                 num_classes,
                 kernel_size=1,
@@ -45,7 +49,6 @@ class PanopticDeepLab(nn.Module):
                 padding=1,
                 bias=False,
             ),
-            nn.ReLU(),
         )
 
         self.instance_center_predict = nn.Sequential(
@@ -89,8 +92,7 @@ class PanopticDeepLab(nn.Module):
         x_semantic = self.semantic_predict(x_semantic)
         x_center_predict = self.instance_center_predict(x_panoptic)
         x_center_regress = self.instance_center_regress(x_panoptic)
-        exit(0)
-        return x
+        return x_semantic, x_center_predict, x_center_regress
 
     # TODO(toluwajosh): resolve the conflict
     # def freeze_bn(self):

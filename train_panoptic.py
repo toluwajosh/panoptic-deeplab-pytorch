@@ -2,6 +2,7 @@ import argparse
 import os
 
 import numpy as np
+import torch
 from tqdm import tqdm
 
 from dataloaders import make_data_loader
@@ -9,7 +10,7 @@ from modeling.panoptic_deeplab import PanopticDeepLab
 from modeling.sync_batchnorm.replicate import patch_replication_callback
 from mypath import Path
 from utils.calculate_weights import calculate_weigths_labels
-from utils.loss import SegmentationLosses
+from utils.loss import PanopticLosses, SegmentationLosses
 from utils.lr_scheduler import LR_Scheduler
 from utils.metrics import Evaluator
 from utils.saver import Saver
@@ -76,9 +77,10 @@ class Trainer(object):
             weight = torch.from_numpy(weight.astype(np.float32))
         else:
             weight = None
-        self.criterion = SegmentationLosses(
+        self.criterion = PanopticLosses(
             weight=weight, cuda=args.cuda
         ).build_loss(mode=args.loss_type)
+
         self.model, self.optimizer = model, optimizer
 
         # Define Evaluator
@@ -128,13 +130,25 @@ class Trainer(object):
         tbar = tqdm(self.train_loader)
         num_img_tr = len(self.train_loader)
         for i, sample in enumerate(tbar):
-            image, target = sample["image"], sample["label"]
+            image, label, center, x_reg, y_reg = (
+                sample["image"],
+                sample["label"],
+                sample["center"],
+                sample["x_reg"],
+                sample["y_reg"],
+            )
             if self.args.cuda:
-                image, target = image.cuda(), target.cuda()
+                image, label, center, x_reg, y_reg = (
+                    image.cuda(),
+                    label.cuda(),
+                    center.cuda(),
+                    x_reg.cuda(),
+                    y_reg.cuda(),
+                )
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
             self.optimizer.zero_grad()
             output = self.model(image)
-            loss = self.criterion(output, target)
+            loss = self.criterion.forward(output, label, center, x_reg, y_reg)
             loss.backward()
             self.optimizer.step()
             train_loss += loss.item()
@@ -150,8 +164,8 @@ class Trainer(object):
                     self.writer,
                     self.args.dataset,
                     image,
-                    target,
-                    output,
+                    label,
+                    output[0],
                     global_step,
                 )
 
@@ -255,6 +269,13 @@ def main():
         default="pascal",
         choices=["pascal", "coco", "cityscapes"],
         help="dataset name (default: pascal)",
+    )
+    parser.add_argument(
+        "--task",
+        type=str,
+        default="segmentation",
+        choices=["segmentation", "panoptic"],
+        help="training task (default: segmentation)",
     )
     parser.add_argument(
         "--use-sbd",
@@ -470,10 +491,11 @@ def main():
     print("Total Epoches:", trainer.args.epochs)
     for epoch in range(trainer.args.start_epoch, trainer.args.epochs):
         trainer.training(epoch)
-        if not trainer.args.no_val and epoch % args.eval_interval == (
-            args.eval_interval - 1
-        ):
-            trainer.validation(epoch)
+        # TODO: enable validation
+        # if not trainer.args.no_val and epoch % args.eval_interval == (
+        #     args.eval_interval - 1
+        # ):
+        #     trainer.validation(epoch)
 
     trainer.writer.close()
 

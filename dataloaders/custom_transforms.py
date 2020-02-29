@@ -151,6 +151,12 @@ class RandomScaleCrop(object):
     def __call__(self, sample):
         img = sample["image"]
         mask = sample["label"]
+        panoptic = False
+        if "center" in sample.keys():
+            center = sample["center"]
+            x_reg = sample["x_reg"]
+            y_reg = sample["y_reg"]
+            panoptic = True
         # random scale (short edge)
         short_size = random.randint(
             int(self.base_size * 0.5), int(self.base_size * 2.0)
@@ -164,6 +170,11 @@ class RandomScaleCrop(object):
             ow = int(1.0 * w * oh / h)
         img = img.resize((ow, oh), Image.BILINEAR)
         mask = mask.resize((ow, oh), Image.NEAREST)
+        if panoptic:
+            center = center.resize((ow, oh), Image.NEAREST)
+            x_reg = x_reg.resize((ow, oh), Image.NEAREST)
+            y_reg = y_reg.resize((ow, oh), Image.NEAREST)
+
         # pad crop
         if short_size < self.crop_size:
             padh = self.crop_size - oh if oh < self.crop_size else 0
@@ -172,14 +183,47 @@ class RandomScaleCrop(object):
             mask = ImageOps.expand(
                 mask, border=(0, 0, padw, padh), fill=self.fill
             )
+            if panoptic:
+                center = ImageOps.expand(
+                    center, border=(0, 0, padw, padh), fill=0
+                )
+                x_reg = ImageOps.expand(
+                    x_reg, border=(0, 0, padw, padh), fill=0
+                )
+                y_reg = ImageOps.expand(
+                    y_reg, border=(0, 0, padw, padh), fill=0
+                )
         # random crop crop_size
         w, h = img.size
         x1 = random.randint(0, w - self.crop_size)
         y1 = random.randint(0, h - self.crop_size)
-        img = img.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
-        mask = mask.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
-
-        return {"image": img, "label": mask}
+        if panoptic:
+            img = img.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
+            mask = mask.crop(
+                (x1, y1, x1 + self.crop_size, y1 + self.crop_size)
+            )
+            center = center.crop(
+                (x1, y1, x1 + self.crop_size, y1 + self.crop_size)
+            )
+            x_reg = x_reg.crop(
+                (x1, y1, x1 + self.crop_size, y1 + self.crop_size)
+            )
+            y_reg = y_reg.crop(
+                (x1, y1, x1 + self.crop_size, y1 + self.crop_size)
+            )
+            return {
+                "image": img,
+                "label": mask,
+                "center": center,
+                "x_reg": x_reg,
+                "y_reg": y_reg,
+            }
+        else:
+            img = img.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
+            mask = mask.crop(
+                (x1, y1, x1 + self.crop_size, y1 + self.crop_size)
+            )
+            return {"image": img, "label": mask}
 
 
 class FixScaleCrop(object):
@@ -189,6 +233,12 @@ class FixScaleCrop(object):
     def __call__(self, sample):
         img = sample["image"]
         mask = sample["label"]
+        panoptic = False
+        if "center" in sample.keys():
+            center = sample["center"]
+            x_reg = sample["x_reg"]
+            y_reg = sample["y_reg"]
+            panoptic = True
         w, h = img.size
         if w > h:
             oh = self.crop_size
@@ -198,14 +248,42 @@ class FixScaleCrop(object):
             oh = int(1.0 * h * ow / w)
         img = img.resize((ow, oh), Image.BILINEAR)
         mask = mask.resize((ow, oh), Image.NEAREST)
+        if panoptic:
+            center = center.resize((ow, oh), Image.NEAREST)
+            x_reg = x_reg.resize((ow, oh), Image.NEAREST)
+            y_reg = y_reg.resize((ow, oh), Image.NEAREST)
+
         # center crop
         w, h = img.size
         x1 = int(round((w - self.crop_size) / 2.0))
         y1 = int(round((h - self.crop_size) / 2.0))
-        img = img.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
-        mask = mask.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
-
-        return {"image": img, "label": mask}
+        if panoptic:
+            img = img.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
+            mask = mask.crop(
+                (x1, y1, x1 + self.crop_size, y1 + self.crop_size)
+            )
+            center = center.crop(
+                (x1, y1, x1 + self.crop_size, y1 + self.crop_size)
+            )
+            x_reg = x_reg.crop(
+                (x1, y1, x1 + self.crop_size, y1 + self.crop_size)
+            )
+            y_reg = y_reg.crop(
+                (x1, y1, x1 + self.crop_size, y1 + self.crop_size)
+            )
+            return {
+                "image": img,
+                "label": mask,
+                "center": center,
+                "x_reg": x_reg,
+                "y_reg": y_reg,
+            }
+        else:
+            img = img.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
+            mask = mask.crop(
+                (x1, y1, x1 + self.crop_size, y1 + self.crop_size)
+            )
+            return {"image": img, "label": mask}
 
 
 class FixedResize(object):
@@ -222,4 +300,3 @@ class FixedResize(object):
         mask = mask.resize(self.size, Image.NEAREST)
 
         return {"image": img, "label": mask}
-

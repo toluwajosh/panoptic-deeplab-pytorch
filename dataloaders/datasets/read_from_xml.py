@@ -52,7 +52,6 @@ def parse_object_bbox(tree_xml_path):
             if bb_key == "bndbox":
                 bbox_list.append(data_object[bb_key])
     else:
-        print("multiple")
         for object_instance in data_object:
             bbox_list.append(object_instance["bndbox"])
     return bbox_list
@@ -73,7 +72,6 @@ if __name__ == "__main__":
             if bb_key == "bndbox":
                 print("bndbox: ", data_object[bb_key])
     else:
-        print("multiple")
         for object_instance in data_object:
             print(
                 "object name: ",
