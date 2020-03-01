@@ -26,11 +26,11 @@ def make_gaussian(size, sigma=3, center=None):
 
     # choose given sigma for the shortest side
     if size[0] < size[1]:
-        sigma = int(0.3 * size[0])
+        sigma = max(int(0.3 * size[0]), 1)
         sigma_1 = sigma
         sigma_2 = (size[1] * sigma) // size[0]
     else:
-        sigma = int(0.3 * size[1])
+        sigma = max(int(0.3 * size[1]), 1)
         sigma_2 = sigma
         sigma_1 = (size[0] * sigma) // size[1]
 

@@ -1,0 +1,3 @@
+[submodule "panopticapi"]
+	path = panopticapi
+	url = https://github.com/cocodataset/panopticapi.git

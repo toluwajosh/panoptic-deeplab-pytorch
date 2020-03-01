@@ -246,8 +246,7 @@ class VOCPanoptic(Dataset):
             c_x = w // 2
             c_y = h // 2
 
-            gaussian_patch = make_gaussian([w, h], 8)
-            # centers_image[y0:y1, x0:x1] -= gaussian_patch
+            gaussian_patch = make_gaussian([w, h])
             centers_image[y0:y1, x0:x1] = np.maximum(
                 centers_image[y0:y1, x0:x1], gaussian_patch
             )
@@ -255,8 +254,6 @@ class VOCPanoptic(Dataset):
             x_patch = np.tile(np.arange(-c_x, c_x), (h, 1))
             y_patch = np.tile(np.arange(-c_y, c_y), (w, 1)).T
 
-            # x_reg[y0:y1, x0:x1] = np.maximum(x_reg[y0:y1, x0:x1], x_patch)
-            # y_reg[y0:y1, x0:x1] = np.maximum(y_reg[y0:y1, x0:x1], y_patch)
             x_reg[y0:y1, x0:x1] = x_patch
             y_reg[y0:y1, x0:x1] = y_patch
         return centers_image, x_reg, y_reg
