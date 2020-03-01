@@ -136,6 +136,7 @@ class PanopticLosses(object):
         b, w, h = center.shape
         mask = torch.zeros_like(label)
         mask[label > 0] = 1
+
         x_semantic, x_center, x_center_regress = prediction
 
         # normalize targets

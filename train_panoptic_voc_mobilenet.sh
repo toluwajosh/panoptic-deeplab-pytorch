@@ -1,7 +1,7 @@
 python train_panoptic.py \
 --backbone mobilenet_3stage \
 --lr 0.003 \
---workers 4 \
+--workers 10 \
 --epochs 100 \
 --batch-size 2 \
 --checkname panoptic-deeplab-mobilenet \
