@@ -126,6 +126,9 @@ class Trainer(object):
 
     def training(self, epoch):
         train_loss = 0.0
+        semantic_loss_out = 0.0
+        center_loss_out = 0.0
+        center_regress_loss_out = 0.0
         self.model.train()
         tbar = tqdm(self.train_loader)
         num_img_tr = len(self.train_loader)
@@ -148,11 +151,49 @@ class Trainer(object):
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
             self.optimizer.zero_grad()
             output = self.model(image)
-            loss = self.criterion.forward(output, label, center, x_reg, y_reg)
+            (
+                semantic_loss,
+                center_loss,
+                center_regress_loss,
+            ) = self.criterion.forward(output, label, center, x_reg, y_reg)
+
+            # total loss
+            loss = semantic_loss + center_loss + center_regress_loss
+
             loss.backward()
             self.optimizer.step()
             train_loss += loss.item()
-            tbar.set_description("Train loss: %.3f" % (train_loss / (i + 1)))
+            semantic_loss_out += semantic_loss.item()
+            center_loss_out += center_loss.item()
+            center_regress_loss_out += center_regress_loss.item()
+            tbar.set_description(
+                "Train loss: %.3f, Semantic loss: %.3f, Center loss: %.3f, Center regress loss: %.3f"
+                % (
+                    train_loss / (i + 1),
+                    semantic_loss_out / (i + 1),
+                    center_loss_out / (i + 1),
+                    center_regress_loss_out / (i + 1),
+                )
+            )
+
+            self.writer.add_scalar(
+                "train/semantic_loss_iter",
+                semantic_loss.item(),
+                i + num_img_tr * epoch,
+            )
+
+            self.writer.add_scalar(
+                "train/center_loss_iter",
+                center_loss.item(),
+                i + num_img_tr * epoch,
+            )
+
+            self.writer.add_scalar(
+                "train/center_regress_loss_iter",
+                center_regress_loss.item(),
+                i + num_img_tr * epoch,
+            )
+
             self.writer.add_scalar(
                 "train/total_loss_iter", loss.item(), i + num_img_tr * epoch
             )

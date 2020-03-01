@@ -7,11 +7,10 @@ python train_panoptic.py \
 --checkname panoptic-deeplab-mobilenet \
 --eval-interval 1 \
 --task panoptic \
---dataset pascal
+--dataset pascal \
+--resume ./run/pascal/panoptic-deeplab-mobilenet/model_best.pth.tar
 
-# --start_epoch 8 \
 # --resume ./run/pascal/deeplab-mobilenet/experiment_6/checkpoint.pth.tar
-
 
 # --resume deeplab-mobilenet.pth.tar
 # --ft # must be used with --resume
