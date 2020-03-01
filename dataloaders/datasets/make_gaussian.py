@@ -26,9 +26,11 @@ def make_gaussian(size, sigma=3, center=None):
 
     # choose given sigma for the shortest side
     if size[0] < size[1]:
+        sigma = int(0.3 * size[0])
         sigma_1 = sigma
         sigma_2 = (size[1] * sigma) // size[0]
     else:
+        sigma = int(0.3 * size[1])
         sigma_2 = sigma
         sigma_1 = (size[0] * sigma) // size[1]
 
@@ -41,8 +43,9 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     blank = np.zeros([200, 200])
-    gaussian_patch = make_gaussian([30, 100], sigma=8)
-    blank[0:100, 0:30] = gaussian_patch
+    w = 60
+    gaussian_patch = make_gaussian([w, 100], sigma=8)
+    blank[0:100, 0:w] = gaussian_patch
     plt.figure()
     plt.imshow(blank)
     plt.show()

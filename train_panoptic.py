@@ -195,19 +195,32 @@ class Trainer(object):
         tbar = tqdm(self.val_loader, desc="\r")
         test_loss = 0.0
         for i, sample in enumerate(tbar):
-            image, target = sample["image"], sample["label"]
+            image, label, center, x_reg, y_reg = (
+                sample["image"],
+                sample["label"],
+                sample["center"],
+                sample["x_reg"],
+                sample["y_reg"],
+            )
             if self.args.cuda:
-                image, target = image.cuda(), target.cuda()
+                image, label, center, x_reg, y_reg = (
+                    image.cuda(),
+                    label.cuda(),
+                    center.cuda(),
+                    x_reg.cuda(),
+                    y_reg.cuda(),
+                )
             with torch.no_grad():
                 output = self.model(image)
-            loss = self.criterion(output, target)
+
+            loss = self.criterion.forward(output, label, center, x_reg, y_reg)
             test_loss += loss.item()
             tbar.set_description("Test loss: %.3f" % (test_loss / (i + 1)))
-            pred = output.data.cpu().numpy()
-            target = target.cpu().numpy()
+            pred = output[0].data.cpu().numpy()
+            label = label.cpu().numpy()
             pred = np.argmax(pred, axis=1)
             # Add batch sample into evaluator
-            self.evaluator.add_batch(target, pred)
+            self.evaluator.add_batch(label, pred)
 
         # Fast test during the training
         Acc = self.evaluator.Pixel_Accuracy()
@@ -492,10 +505,10 @@ def main():
     for epoch in range(trainer.args.start_epoch, trainer.args.epochs):
         trainer.training(epoch)
         # TODO: enable validation
-        # if not trainer.args.no_val and epoch % args.eval_interval == (
-        #     args.eval_interval - 1
-        # ):
-        #     trainer.validation(epoch)
+        if not trainer.args.no_val and epoch % args.eval_interval == (
+            args.eval_interval - 1
+        ):
+            trainer.validation(epoch)
 
     trainer.writer.close()
 

@@ -7,8 +7,12 @@ from mypath import Path
 from torchvision import transforms
 from dataloaders import custom_transforms as tr
 
-from .read_from_xml import parse_object_bbox
-from .make_gaussian import make_gaussian
+try:
+    from .read_from_xml import parse_object_bbox
+    from .make_gaussian import make_gaussian
+except ModuleNotFoundError as identifier:
+    from read_from_xml import parse_object_bbox
+    from make_gaussian import make_gaussian
 
 
 class VOCSegmentation(Dataset):
@@ -201,8 +205,9 @@ class VOCPanoptic(Dataset):
     def __getitem__(self, index):
         _img, _target, _centers, x_reg, y_reg = self._make_data_set(index)
         _centers = Image.fromarray(np.uint8(_centers * 255))
-        x_reg = Image.fromarray(np.uint8(x_reg))
-        y_reg = Image.fromarray(np.uint8(y_reg))
+        x_reg = Image.fromarray(np.int32(x_reg), "I")
+        y_reg = Image.fromarray(np.int32(y_reg), "I")
+
         sample = {
             "image": _img,
             "label": _target,
@@ -220,7 +225,8 @@ class VOCPanoptic(Dataset):
     def load_centers_and_regression(self, annotation_file, size):
         annotation_bbox = parse_object_bbox(annotation_file)
         # we need to know the size of image
-        centers_image = np.ones([size[1], size[0]])
+        # centers_image = np.ones([size[1], size[0]])
+        centers_image = np.zeros([size[1], size[0]])
         x_reg = np.zeros([size[1], size[0]])
         y_reg = np.zeros([size[1], size[0]])
         for center in annotation_bbox:
@@ -241,13 +247,18 @@ class VOCPanoptic(Dataset):
             c_y = h // 2
 
             gaussian_patch = make_gaussian([w, h], 8)
-            centers_image[y0:y1, x0:x1] -= gaussian_patch
+            # centers_image[y0:y1, x0:x1] -= gaussian_patch
+            centers_image[y0:y1, x0:x1] = np.maximum(
+                centers_image[y0:y1, x0:x1], gaussian_patch
+            )
 
             x_patch = np.tile(np.arange(-c_x, c_x), (h, 1))
             y_patch = np.tile(np.arange(-c_y, c_y), (w, 1)).T
 
-            x_reg[y0:y1, x0:x1] = np.maximum(x_reg[y0:y1, x0:x1], x_patch)
-            y_reg[y0:y1, x0:x1] = np.maximum(y_reg[y0:y1, x0:x1], y_patch)
+            # x_reg[y0:y1, x0:x1] = np.maximum(x_reg[y0:y1, x0:x1], x_patch)
+            # y_reg[y0:y1, x0:x1] = np.maximum(y_reg[y0:y1, x0:x1], y_patch)
+            x_reg[y0:y1, x0:x1] = x_patch
+            y_reg[y0:y1, x0:x1] = y_patch
         return centers_image, x_reg, y_reg
 
     def _make_data_set(self, index):
@@ -301,6 +312,7 @@ if __name__ == "__main__":
     from torch.utils.data import DataLoader
     import matplotlib.pyplot as plt
     import argparse
+    import torch
 
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
@@ -315,12 +327,18 @@ if __name__ == "__main__":
 
     for ii, sample in enumerate(dataloader, 1):
         for jj in range(sample["image"].size()[0]):
-            print(sample.keys())
-            exit(0)
+            # print(sample.keys())
+            # exit(0)
             img = sample["image"].numpy()
             gt = sample["label"].numpy()
-            cen = sample["center"].numpy()[0]
-            # cen = sample["y_reg"].numpy()[0]
+            # mask = np.zeros_like(gt)
+            # mask[gt > 0] = 1
+            # cen = mask[0]
+
+            center = sample["center"].numpy()[0]
+            x_reg = sample["x_reg"].numpy()[0]
+            y_reg = sample["y_reg"].numpy()[0]
+
             tmp = np.array(gt[jj]).astype(np.uint8)
             segmap = decode_segmap(tmp, dataset="pascal")
             img_tmp = np.transpose(img[jj], axes=[1, 2, 0])
@@ -328,7 +346,12 @@ if __name__ == "__main__":
             img_tmp += (0.485, 0.456, 0.406)
             img_tmp *= 255.0
             img_tmp = img_tmp.astype(np.uint8)
-            cen = cen.astype(np.uint8)
+            center = center.astype(np.uint8) / 255.0
+
+            print(np.max(center))
+            x_reg = x_reg.astype(np.uint8)
+            y_reg = y_reg.astype(np.uint8)
+
             plt.figure()
             plt.title("display")
             plt.subplot(311)
@@ -336,7 +359,11 @@ if __name__ == "__main__":
             plt.subplot(312)
             plt.imshow(segmap)
             plt.subplot(313)
-            plt.imshow(cen)
+            plt.imshow(center)
+            plt.subplot(321)
+            plt.imshow(x_reg)
+            # plt.subplot(522)
+            # plt.imshow(y_reg)
 
         if ii == 1:
             break

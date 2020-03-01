@@ -99,9 +99,7 @@ class PanopticLosses(object):
     def CrossEntropyLoss(self, logit, target):
         n, c, h, w = logit.size()
         criterion = nn.CrossEntropyLoss(
-            weight=self.weight,
-            ignore_index=self.ignore_index,
-            size_average=self.size_average,
+            weight=self.weight, ignore_index=self.ignore_index,
         )
         if self.cuda:
             criterion = criterion.cuda()
@@ -135,7 +133,21 @@ class PanopticLosses(object):
         return loss
 
     def forward(self, prediction, label, center, x_reg, y_reg):
+        b, w, h = center.shape
+        mask = torch.zeros_like(label)
+        mask[label > 0] = 1
         x_semantic, x_center, x_center_regress = prediction
+
+        # normalize targets
+        center = center / 255.0
+        x_reg = x_reg / 255.0
+        y_reg = y_reg / 255.0
+
+        # mask pixels for stuff categories
+        x_center = x_center * mask.view(b, 1, w, h)
+        x_center_regress = x_center_regress * mask.view(b, 1, w, h)
+
+        # calculate losses
         semantic_loss = self.semantic_loss(x_semantic, label)
         center_loss = mse_loss(x_center, center.unsqueeze(1))
         center_regress = torch.cat([x_reg.unsqueeze(1), y_reg.unsqueeze(1)], 1)

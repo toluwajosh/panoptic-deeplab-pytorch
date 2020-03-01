@@ -86,6 +86,9 @@ class RandomHorizontalFlip(object):
             center = sample["center"]
             x_reg = sample["x_reg"]
             y_reg = sample["y_reg"]
+            # print(x_reg.shape)
+            # print(np.min(x_reg))
+            # exit(0)
             if random.random() < 0.5:
                 img = img.transpose(Image.FLIP_LEFT_RIGHT)
                 mask = mask.transpose(Image.FLIP_LEFT_RIGHT)

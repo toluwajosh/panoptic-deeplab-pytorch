@@ -8,6 +8,8 @@ We already have a semantic segmentation branch of DeepLabV3+, so the rest of the
 
 - [X] Add an instance decoder head
 - [X] Groundtruth instance centers encoding by a 2D Gaussian with standard deviation of 8 pixels
+- [ ] Panoptic Dataloader for SBD
+- [ ] Panoptic Dataloader for COCO
 - [ ] Add compound loss(criterion) function.
 - [ ] Apply 5×5 depthwise-separable convolution
 - [ ] Test training with slim backbone (mobileNet), and,

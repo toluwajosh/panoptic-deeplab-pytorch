@@ -28,9 +28,9 @@ class PanopticDeepLab(nn.Module):
 
         self.backbone = build_backbone(backbone, output_stride, BatchNorm)
 
-        # TODO(toluwajosh): we should probably be able to use
-        # the same backbone context for both semantic and instance heads
-        self.aspp = build_aspp(backbone, output_stride, BatchNorm)
+        # backbone context
+        self.aspp_sem = build_aspp(backbone, output_stride, BatchNorm)
+        self.aspp_pan = build_aspp(backbone, output_stride, BatchNorm)
         # semantic decoder
         self.semantic_decoder = build_decoder(256, backbone, BatchNorm)
         # TODO(toluwajosh): instance decoder
@@ -40,6 +40,7 @@ class PanopticDeepLab(nn.Module):
             nn.Conv2d(
                 256, 256, kernel_size=5, stride=1, padding=1, bias=False,
             ),
+            BatchNorm(256),
             nn.ReLU(),
             nn.Conv2d(
                 256,
@@ -49,6 +50,7 @@ class PanopticDeepLab(nn.Module):
                 padding=1,
                 bias=False,
             ),
+            nn.Sigmoid(),
         )
 
         self.instance_center_predict = nn.Sequential(
@@ -56,6 +58,7 @@ class PanopticDeepLab(nn.Module):
             BatchNorm(32),
             nn.ReLU(),
             nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=1, bias=False),
+            nn.Sigmoid(),
         )
 
         self.instance_center_regress = nn.Sequential(
@@ -63,17 +66,23 @@ class PanopticDeepLab(nn.Module):
             BatchNorm(32),
             nn.ReLU(),
             nn.Conv2d(32, 2, kernel_size=1, stride=1, padding=1, bias=False),
+            nn.Tanh(),
         )
 
         self.freeze_bn = freeze_bn
 
     def forward(self, input):
         x, mid_level_feat, low_level_feat = self.backbone(input)
-        x = self.aspp(x)
+        x_semantic = self.aspp_sem(x)
+        x_panoptic = self.aspp_pan(x)
         # semantic head
-        x_semantic = self.semantic_decoder(x, mid_level_feat, low_level_feat)
+        x_semantic = self.semantic_decoder(
+            x_semantic, mid_level_feat, low_level_feat
+        )
         # panoptic head
-        x_panoptic = self.panoptic_decoder(x, mid_level_feat, low_level_feat)
+        x_panoptic = self.panoptic_decoder(
+            x_panoptic, mid_level_feat, low_level_feat
+        )
 
         # TODO(toluwajosh): make sure next stage is necessary
         x_semantic = F.interpolate(

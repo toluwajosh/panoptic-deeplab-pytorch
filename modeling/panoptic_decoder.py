@@ -10,6 +10,7 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
         if backbone == "mobilenet_3stage":
             low_level_inplanes = 24
+            mid_level_inplanes = 32
         else:
             raise NotImplementedError
 
@@ -17,7 +18,7 @@ class Decoder(nn.Module):
         out_ch_1 = 256
         self.conv_1 = nn.Sequential(
             nn.Conv2d(
-                256,  # output from the aspp block
+                in_ch_1,  # output from the aspp block
                 out_ch_1,
                 kernel_size=1,
                 stride=1,
@@ -29,7 +30,7 @@ class Decoder(nn.Module):
             nn.Dropout(0.5),
         )
 
-        in_ch_2 = 256 + 32
+        in_ch_2 = 256 + mid_level_inplanes
         out_ch_2 = 256
         self.conv_2 = nn.Sequential(
             nn.Conv2d(
