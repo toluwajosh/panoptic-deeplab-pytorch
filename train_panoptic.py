@@ -254,7 +254,14 @@ class Trainer(object):
             with torch.no_grad():
                 output = self.model(image)
 
-            loss = self.criterion.forward(output, label, center, x_reg, y_reg)
+            (
+                semantic_loss,
+                center_loss,
+                center_regress_loss,
+            ) = self.criterion.forward(output, label, center, x_reg, y_reg)
+
+            # total loss
+            loss = semantic_loss + center_loss + center_regress_loss
             test_loss += loss.item()
             tbar.set_description("Test loss: %.3f" % (test_loss / (i + 1)))
             pred = output[0].data.cpu().numpy()
