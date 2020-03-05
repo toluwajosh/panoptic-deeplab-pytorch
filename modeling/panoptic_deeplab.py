@@ -59,7 +59,7 @@ class PanopticDeepLab(nn.Module):
             nn.ReLU(),
             nn.Dropout(0.1),
             nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=1, bias=False),
-            nn.Sigmoid(),
+            # nn.Sigmoid(),
         )
 
         self.instance_center_regress = nn.Sequential(
@@ -68,7 +68,7 @@ class PanopticDeepLab(nn.Module):
             nn.ReLU(),
             nn.Dropout(0.1),
             nn.Conv2d(32, 2, kernel_size=1, stride=1, padding=1, bias=False),
-            nn.Tanh(),
+            # nn.Tanh(),
         )
 
         self.freeze_bn = freeze_bn

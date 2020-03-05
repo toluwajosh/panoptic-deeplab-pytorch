@@ -139,10 +139,10 @@ class PanopticLosses(object):
 
         x_semantic, x_center, x_center_regress = prediction
 
-        # normalize targets
-        center = center / 255.0
-        x_reg = x_reg / 255.0
-        y_reg = y_reg / 255.0
+        # # normalize targets
+        # center = center / 255.0
+        # x_reg = x_reg / 255.0
+        # y_reg = y_reg / 255.0
 
         # mask pixels for stuff categories
         x_center = x_center * mask.view(b, 1, w, h)
@@ -153,7 +153,7 @@ class PanopticLosses(object):
         center_loss = mse_loss(x_center, center.unsqueeze(1))
         center_regress = torch.cat([x_reg.unsqueeze(1), y_reg.unsqueeze(1)], 1)
         center_regress_loss = l1_loss(x_center_regress, center_regress)
-        return semantic_loss, center_loss, center_regress_loss
+        return semantic_loss, center_loss * 0.001, center_regress_loss * 0.01
 
 
 if __name__ == "__main__":

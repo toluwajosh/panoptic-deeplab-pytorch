@@ -9,7 +9,7 @@ class Path(object):
             return '/home/tjosh/datasets/semseg_benchmark/benchmark_RELEASE/'
         elif dataset == 'cityscapes':
             # foler that contains leftImg8bit/
-            return '/path/to/datasets/cityscapes/'
+            return '/home/tjosh/datasets/cityscapes/leftImg8bit_trainvaltest/'
         elif dataset == 'coco':
             return '/media/tjosh/vault/dataset/panoptic_segmentation/'
         else:

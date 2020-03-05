@@ -95,16 +95,6 @@ class VOCSegmentation(Dataset):
 
         return _img, _target
 
-    def _make_data_set(self, index):
-        _img = Image.open(self.images[index]).convert("RGB")
-        _target = Image.open(self.categories[index])
-
-        _centers_image, x_reg, y_reg = self.load_centers_and_regression(
-            self.annotations[index], _img.size
-        )
-
-        return _img, _target, _centers_image, x_reg, y_reg
-
     def transform_tr(self, sample):
         composed_transforms = transforms.Compose(
             [
@@ -254,8 +244,8 @@ class VOCPanoptic(Dataset):
             x_patch = np.tile(np.arange(-c_x, c_x), (h, 1))
             y_patch = np.tile(np.arange(-c_y, c_y), (w, 1)).T
 
-            x_reg[y0:y1, x0:x1] = x_patch
-            y_reg[y0:y1, x0:x1] = y_patch
+            x_reg[y0:y1, x0:x1] = x_reg[y0:y1, x0:x1] + x_patch
+            y_reg[y0:y1, x0:x1] = y_reg[y0:y1, x0:x1] + y_patch
         return centers_image, x_reg, y_reg
 
     def _make_data_set(self, index):
@@ -351,16 +341,16 @@ if __name__ == "__main__":
 
             plt.figure()
             plt.title("display")
-            plt.subplot(311)
+            plt.subplot(331)
             plt.imshow(img_tmp)
-            plt.subplot(312)
+            plt.subplot(332)
             plt.imshow(segmap)
-            plt.subplot(313)
+            plt.subplot(333)
             plt.imshow(center)
-            plt.subplot(321)
+            plt.subplot(334)
             plt.imshow(x_reg)
-            # plt.subplot(522)
-            # plt.imshow(y_reg)
+            plt.subplot(335)
+            plt.imshow(y_reg)
 
         if ii == 1:
             break

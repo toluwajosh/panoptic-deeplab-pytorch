@@ -4,12 +4,14 @@ python train_panoptic.py \
 --workers 8 \
 --epochs 100 \
 --batch-size 2 \
---checkname panoptic-deeplab-mobilenet \
+--checkname panoptic-deeplab-mobilenet-no-activation \
 --eval-interval 1 \
 --task panoptic \
+--resume /home/tjosh/codes/pytorch-deeplab-xception/run/pascal/panoptic-deeplab-mobilenet-no-activation/model_best.pth.tar \
 --dataset pascal
 
-# --resume ./run/pascal/deeplab-mobilenet/experiment_6/checkpoint.pth.tar
+
+
 # --resume ./run/pascal/panoptic-deeplab-mobilenet/model_best.pth.tar
 
 # --resume deeplab-mobilenet.pth.tar

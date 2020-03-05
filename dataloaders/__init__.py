@@ -16,6 +16,8 @@ def make_data_loader(args, **kwargs):
         #     train_set = combine_dbs.CombineDBs(
         #         [train_set, sbd_train], excluded=[val_set]
         #     )
+        # we can also combine citiscapes
+        
         num_class = train_set.NUM_CLASSES
         train_loader = DataLoader(
             train_set, batch_size=args.batch_size, shuffle=True, **kwargs
@@ -28,9 +30,17 @@ def make_data_loader(args, **kwargs):
         return train_loader, val_loader, test_loader, num_class
 
     elif args.dataset == "cityscapes":
-        train_set = cityscapes.CityscapesSegmentation(args, split="train")
-        val_set = cityscapes.CityscapesSegmentation(args, split="val")
-        test_set = cityscapes.CityscapesSegmentation(args, split="test")
+        if args.task == "segmentation":
+            train_set = cityscapes.CityscapesSegmentation(args, split="train")
+            val_set = cityscapes.CityscapesSegmentation(args, split="val")
+            test_set = cityscapes.CityscapesSegmentation(args, split="test")
+        elif args.task == "panoptic":
+            train_set = cityscapes.CityscapesPanoptic(args, split="train")
+            val_set = cityscapes.CityscapesPanoptic(args, split="val")
+            test_set = cityscapes.CityscapesPanoptic(args, split="test")
+        else:
+            print("UNKNOWN TASK!")
+            raise
         num_class = train_set.NUM_CLASSES
         train_loader = DataLoader(
             train_set, batch_size=args.batch_size, shuffle=True, **kwargs
@@ -41,6 +51,11 @@ def make_data_loader(args, **kwargs):
         test_loader = DataLoader(
             test_set, batch_size=args.batch_size, shuffle=False, **kwargs
         )
+        # if args.use_sbd:
+        #     voc_train = pascal.VOCPanoptic(args, split=["train", "val"])
+        #     train_set = combine_dbs.CombineDBs(
+        #         [train_set, voc_train], excluded=[val_set]
+        #     )
 
         return train_loader, val_loader, test_loader, num_class
 

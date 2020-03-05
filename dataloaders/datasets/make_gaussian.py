@@ -1,4 +1,4 @@
-"""Make Gaussian distributio
+"""Make Gaussian distribution
 """
 
 import numpy as np
@@ -26,17 +26,21 @@ def make_gaussian(size, sigma=3, center=None):
 
     # choose given sigma for the shortest side
     if size[0] < size[1]:
-        sigma = max(int(0.3 * size[0]), 1)
+        sigma = max(int(0.1 * size[0]), 1)
         sigma_1 = sigma
-        sigma_2 = (size[1] * sigma) // size[0]
+        sigma_2 = max((size[1] * sigma) // (size[0] + 1), 1)
     else:
-        sigma = max(int(0.3 * size[1]), 1)
+        sigma = max(int(0.1 * size[1]), 1)
         sigma_2 = sigma
-        sigma_1 = (size[0] * sigma) // size[1]
-
-    return np.exp(
+        sigma_1 = max((size[0] * sigma) // (size[1] + 1), 1)
+    # if sigma_1==0:
+    #     sigma_1 = 1
+    # if sigma_2 == 0:
+    #     sigma_2 = 1
+    patch = np.exp(
         -(((x - x0) ** 2) / sigma_1 ** 2 + ((y - y0) ** 2) / sigma_2 ** 2)
     )
+    return patch
 
 
 if __name__ == "__main__":

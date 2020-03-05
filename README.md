@@ -8,12 +8,13 @@ We already have a semantic segmentation branch of DeepLabV3+, so the rest of the
 
 - [X] Add an instance decoder head
 - [X] Groundtruth instance centers encoding by a 2D Gaussian with standard deviation of 8 pixels
-- [ ] Panoptic Dataloader for SBD
+- [X] Add compound loss(criterion) function.
+- [X] Panoptic Dataloader for Citiscapes
 - [ ] Panoptic Dataloader for COCO
-- [ ] Add compound loss(criterion) function.
+- [ ] Combine VOC and Citiscapes training data
 - [ ] Apply 5×5 depthwise-separable convolution
-- [ ] Test training with slim backbone (mobileNet), and,
-- [ ] If successful, use a more robust backbone (ResNet 101).
+- [X] Test training with slim backbone (mobileNet), and,
+- [ ] If successful, use a more robust backbone (ResNet 50/101).
 
 **see the original README below:**
 

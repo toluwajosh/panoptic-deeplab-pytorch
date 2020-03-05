@@ -49,7 +49,7 @@ class COCOSegmentation(Dataset):
         super().__init__()
         ann_file = os.path.join(
             base_dir,
-            "annotations/full_utf_instances_{}{}.json".format(split, year),
+            "annotations/panoptic_{}{}_stff.json".format(split, year),
         )
         ids_file = os.path.join(
             base_dir, "annotations/{}_ids_{}.pth".format(split, year)
@@ -123,13 +123,14 @@ class COCOSegmentation(Dataset):
         mask = np.zeros((h, w), dtype=np.uint8)
         coco_mask = self.coco_mask
         for instance in target:
-            # if isinstance(instance["segmentation"], dict):
-            #     # print(instance["segmentation"]["counts"])
-            #     print(instance["segmentation"])
-            #     exit(0)
-            print(instance["segmentation"])
-            # rle = coco_mask.frPyObjects(instance["segmentation"], h, w)
-            rle = coco_mask.decode(instance["segmentation"])
+            if isinstance(instance["segmentation"], dict):
+                # print(instance["segmentation"]["counts"])
+                instance["segmentation"]['counts'] = bytes(instance["segmentation"]['counts'], encoding='utf8')
+            # print(str.encode(instance["segmentation"]['counts']))
+            print(instance['segmentation'][0])
+            # exit(0)
+            rle = coco_mask.frPyObjects(instance["segmentation"], h, w)
+            # rle = coco_mask.decode(instance["segmentation"])
             m = coco_mask.decode(rle)
             cat = instance["category_id"]
             if cat in self.CAT_LIST:
@@ -354,7 +355,7 @@ if __name__ == "__main__":
     coco_val = COCOSegmentation(args, split="val", year="2017")
 
     dataloader = DataLoader(
-        coco_val, batch_size=2, shuffle=True, num_workers=0
+        coco_val, batch_size=1, shuffle=True, num_workers=0
     )
 
     for ii, sample in enumerate(dataloader):
