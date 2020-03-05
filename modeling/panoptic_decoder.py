@@ -6,7 +6,7 @@ from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 
 
 class Decoder(nn.Module):
-    def __init__(self, num_classes, backbone, BatchNorm):
+    def __init__(self, output_channels, backbone, BatchNorm):
         super(Decoder, self).__init__()
         if backbone == "mobilenet_3stage":
             low_level_inplanes = 24
@@ -47,7 +47,7 @@ class Decoder(nn.Module):
         )
 
         in_ch_3 = 256 + low_level_inplanes
-        out_ch_3 = num_classes
+        out_ch_3 = output_channels
         self.conv_3 = nn.Sequential(
             nn.Conv2d(
                 in_ch_3,
@@ -103,5 +103,5 @@ class Decoder(nn.Module):
                 m.bias.data.zero_()
 
 
-def build_decoder(num_classes, backbone, BatchNorm):
-    return Decoder(num_classes, backbone, BatchNorm)
+def build_decoder(output_channels, backbone, BatchNorm):
+    return Decoder(output_channels, backbone, BatchNorm)

@@ -150,7 +150,12 @@ class Trainer(object):
                 )
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
             self.optimizer.zero_grad()
-            output = self.model(image)
+            try:
+                output = self.model(image)
+            except ValueError as identifier:
+                # there was an error with wrong input size
+                print("Error: ", identifier)
+                continue
             (
                 semantic_loss,
                 center_loss,
@@ -552,7 +557,6 @@ def main():
     print("Total Epoches:", trainer.args.epochs)
     for epoch in range(trainer.args.start_epoch, trainer.args.epochs):
         trainer.training(epoch)
-        # TODO: enable validation
         if not trainer.args.no_val and epoch % args.eval_interval == (
             args.eval_interval - 1
         ):

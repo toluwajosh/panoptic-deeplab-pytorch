@@ -38,7 +38,13 @@ class PanopticDeepLab(nn.Module):
 
         self.semantic_predict = nn.Sequential(
             nn.Conv2d(
-                256, 256, kernel_size=5, stride=1, padding=1, bias=False,
+                256,
+                256,
+                kernel_size=5,
+                stride=1,
+                padding=1,
+                bias=False,
+                groups=256,  # dsc 1
             ),
             BatchNorm(256),
             nn.ReLU(),
@@ -54,20 +60,44 @@ class PanopticDeepLab(nn.Module):
         )
 
         self.instance_center_predict = nn.Sequential(
-            nn.Conv2d(128, 32, kernel_size=5, stride=1, padding=1, bias=False),
+            nn.Conv2d(
+                128,
+                32,
+                kernel_size=5,
+                stride=1,
+                padding=1,
+                bias=False,
+                groups=32,  # dsc 1
+            ),
             BatchNorm(32),
             nn.ReLU(),
             nn.Dropout(0.1),
-            nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=1, bias=False),
+            nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=1, bias=False,),
             # nn.Sigmoid(),
         )
 
         self.instance_center_regress = nn.Sequential(
-            nn.Conv2d(128, 32, kernel_size=5, stride=1, padding=1, bias=False),
+            nn.Conv2d(
+                128,
+                32,
+                kernel_size=5,
+                stride=1,
+                padding=1,
+                bias=False,
+                groups=32,  # dsc 2
+            ),
             BatchNorm(32),
             nn.ReLU(),
             nn.Dropout(0.1),
-            nn.Conv2d(32, 2, kernel_size=1, stride=1, padding=1, bias=False),
+            nn.Conv2d(
+                32,
+                2,
+                kernel_size=1,
+                stride=1,
+                padding=1,
+                bias=False,
+                groups=2,
+            ),
             # nn.Tanh(),
         )
 
