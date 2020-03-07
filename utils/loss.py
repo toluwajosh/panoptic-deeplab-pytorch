@@ -151,8 +151,8 @@ class PanopticLosses(object):
         semantic_loss = self.semantic_loss(x_semantic, label)
         center_loss = mse_loss(x_center, center.unsqueeze(1))
         center_regress = torch.cat([x_reg.unsqueeze(1), y_reg.unsqueeze(1)], 1)
-        center_regress_loss = l1_loss(x_center_regress, center_regress)
-        return semantic_loss, center_loss *0.001 , center_regress_loss *0.01
+        center_regress_loss = mse_loss(x_center_regress, center_regress)
+        return semantic_loss, center_loss *0.001 , center_regress_loss *0.0001
 
 
 if __name__ == "__main__":

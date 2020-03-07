@@ -320,80 +320,58 @@ class CityscapesPanoptic(data.Dataset):
         for object_data in annotation_data:
             center = object_data["bbox"]
             label = object_data["label"]
-            polygon = object_data["polygon"]
+            polygon = np.int0(object_data["polygon"])
+            minx = np.min(polygon[:, 0])
+            miny = np.min(polygon[:, 1])
 
-            x, y, w, h = cv2.boundingRect(np.array(polygon))
+            x, y, w, h = cv2.boundingRect(polygon)
 
-            # x0 = max(int(center["xmin"]), 0)
-            # x1 = min(int(center["xmax"]), size[0])
-            # y0 = max(int(center["ymin"]), 0)
-            # y1 = min(int(center["ymax"]), size[1])
-            # in case x is less than zero
-            if x < 0:
-                x = 0
-                w -= x
-            if y < 0:
-                y = 0
-                w -= y
-            if w % 2 != 0:
-                w -= 1
-            if h % 2 != 0:
-                h -= 1
-            # x0 = max(x, 0)
-            # x1 = min(x + w, size[0])
-            # y0 = max(y, 0)
-            # y1 = min(y + h, size[0])
+            x0 = max(x, 0)
+            x1 = min(x + w, size[0])
+            y0 = max(y, 0)
+            y1 = min(y + h, size[1])
 
-            x0 = x
-            x1 = x + w
-            y0 = y
-            y1 = y + h
+            if (x1 - x0) % 2 != 0:
+                x1 -= 1
+            if (y1 - y0) % 2 != 0:
+                y1 -= 1
+            w = x1 - x0
+            h = y1 - y0
 
-            # print("\n")
-            # print(
-            #     "w: {} h: {} x0: {} x1: {} y0: {} y1: {}".format(
-            #         w, h, x0, x1, y0, y1
-            #     )
-            # )
             c_x = w // 2
             c_y = h // 2
             gaussian_patch = make_gaussian([w, h], center=[c_x, c_y])
 
             mask = np.zeros_like(gaussian_patch)
-            cv2.fillPoly(mask, pts=[np.array(polygon)], color=(1, 1, 1))
+
+            # adjust polygon coordinates
+            polygon[:, 0] = polygon[:, 0] - minx
+            polygon[:, 1] = polygon[:, 1] - miny
+            cv2.fillPoly(mask, pts=[polygon], color=(1, 1, 1))
 
             try:
                 pass
                 centers_image[y0:y1, x0:x1] = np.maximum(
                     centers_image[y0:y1, x0:x1], gaussian_patch
                 )
+                # centers_image[y0:y1, x0:x1] = np.where(
+                # mask == 1, gaussian_patch, centers_image[y0:y1, x0:x1]
+                # )
             except ValueError as identifier:
-                continue
-                # plt.imshow(centers_image[y0:y1, x0:x1])
-                # plt.imshow(gaussian_patch)
-                # plt.show()
-                # print(centers_image[y0:y1, x0:x1].shape)
-                # print(gaussian_patch.shape)
-                # raise
-
-            if np.sum(mask) == 0:
-                mask = np.ones_like(mask)
-
-            # cv2.imshow("small mask", mask)
-            # cv2.waitKey(0)
+                print("\n")
+                print(identifier)
+                print(
+                    "w: {} h: {} x0: {} x1: {} y0: {} y1: {}".format(
+                        w, h, x0, x1, y0, y1
+                    )
+                )
+                print(centers_image.shape)
+                print(centers_image[y0:y1, x0:x1].shape)
+                print(gaussian_patch.shape)
+                raise
 
             x_patch = np.tile(np.arange(-c_x, c_x), (h, 1))
             y_patch = np.tile(np.arange(-c_y, c_y), (w, 1)).T
-            # x_reg[y0:y1, x0:x1] = x_patch
-            # y_reg[y0:y1, x0:x1] = y_patch
-            # for very large areas where mask is wrong
-            # print(np.shape(mask), np.shape(centers_image))
-            # exit(0)
-            # if np.shape(mask)[1] == centers_image.shape[1]:
-            #     print(np.shape(mask), np.shape(centers_image))
-            #     cv2.imshow("large mask", mask)
-            #     cv2.waitKey(0)
-            #     mask = np.ones_like(mask)
             x_reg[y0:y1, x0:x1] = np.where(
                 mask == 1, x_patch, x_reg[y0:y1, x0:x1]
             )
@@ -401,8 +379,6 @@ class CityscapesPanoptic(data.Dataset):
             y_reg[y0:y1, x0:x1] = np.where(
                 mask == 1, y_patch, y_reg[y0:y1, x0:x1]
             )
-            # plt.imshow(y_patch)
-            # plt.show()
         return centers_image, x_reg, y_reg
 
     def __getitem__(self, index):
@@ -564,15 +540,15 @@ if __name__ == "__main__":
 
             plt.figure()
             plt.title("display")
-            plt.subplot(331)
-            plt.imshow(img_tmp)
-            plt.subplot(332)
+            # plt.subplot(221)
+            # plt.imshow(img_tmp)
+            plt.subplot(221)
             plt.imshow(segmap)
-            plt.subplot(333)
+            plt.subplot(222)
             plt.imshow(center)
-            plt.subplot(334)
+            plt.subplot(223)
             plt.imshow(x_reg)
-            plt.subplot(335)
+            plt.subplot(224)
             plt.imshow(y_reg)
 
         if ii == 0:
