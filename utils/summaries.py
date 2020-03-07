@@ -14,8 +14,18 @@ class TensorboardSummary(object):
         return writer
 
     def visualize_image(
-        self, writer, dataset, image, target, output, global_step, centers=None
+        self,
+        writer,
+        dataset,
+        image,
+        target,
+        output,
+        global_step,
+        centers=None,
+        reg=None,
     ):
+        reg_x = reg[:, 0:1, :, :]
+        reg_y = reg[:, 1:2, :, :]
         grid_image = make_grid(image[:3].clone().cpu().data, 3, normalize=True)
         writer.add_image("Image", grid_image, global_step)
         grid_image = make_grid(
@@ -40,8 +50,16 @@ class TensorboardSummary(object):
         writer.add_image("Groundtruth label", grid_image, global_step)
         if centers is not None:
             grid_image = make_grid(
-                torch.squeeze(centers[:3], 1).detach().cpu().data,
-                3,
-                normalize=True,
+                centers[:3].clone().cpu().data, 3, normalize=True,
             )
             writer.add_image("Centers image", grid_image, global_step)
+
+            grid_image = make_grid(
+                reg_x[:3].clone().cpu().data, 3, normalize=True,
+            )
+            writer.add_image("reg_x image", grid_image, global_step)
+
+            grid_image = make_grid(
+                reg_y[:3].clone().cpu().data, 3, normalize=True,
+            )
+            writer.add_image("reg_y image", grid_image, global_step)

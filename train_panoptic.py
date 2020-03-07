@@ -214,6 +214,7 @@ class Trainer(object):
                     output[0],
                     global_step,
                     centers=output[1],
+                    reg=output[2],
                 )
 
         self.writer.add_scalar("train/total_loss_epoch", train_loss, epoch)
