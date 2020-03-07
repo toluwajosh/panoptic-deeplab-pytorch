@@ -213,6 +213,7 @@ class Trainer(object):
                     label,
                     output[0],
                     global_step,
+                    centers=output[1],
                 )
 
         self.writer.add_scalar("train/total_loss_epoch", train_loss, epoch)
@@ -257,7 +258,12 @@ class Trainer(object):
                     y_reg.cuda(),
                 )
             with torch.no_grad():
-                output = self.model(image)
+                try:
+                    output = self.model(image)
+                except ValueError as identifier:
+                    # there was an error with wrong input size
+                    print("Error: ", identifier)
+                    continue
 
             (
                 semantic_loss,

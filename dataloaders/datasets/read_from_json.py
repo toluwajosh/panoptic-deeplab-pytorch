@@ -32,8 +32,11 @@ def load_json_data(json_file):
         polygon = object_data["polygon"]
         # convert polygon to bounding box
         annotations.append(
-            {"label": label,
-             "bbox": polygon_to_bbox(polygon)}
+            {
+                "label": label,
+                "bbox": polygon_to_bbox(polygon),
+                "polygon": polygon,
+            },
         )
     return annotations
 

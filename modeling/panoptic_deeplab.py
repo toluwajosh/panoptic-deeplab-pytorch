@@ -73,7 +73,6 @@ class PanopticDeepLab(nn.Module):
             nn.ReLU(),
             nn.Dropout(0.1),
             nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=1, bias=False,),
-            # nn.Sigmoid(),
         )
 
         self.instance_center_regress = nn.Sequential(

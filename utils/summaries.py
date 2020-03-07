@@ -14,7 +14,7 @@ class TensorboardSummary(object):
         return writer
 
     def visualize_image(
-        self, writer, dataset, image, target, output, global_step
+        self, writer, dataset, image, target, output, global_step, centers=None
     ):
         grid_image = make_grid(image[:3].clone().cpu().data, 3, normalize=True)
         writer.add_image("Image", grid_image, global_step)
@@ -38,3 +38,10 @@ class TensorboardSummary(object):
             range=(0, 255),
         )
         writer.add_image("Groundtruth label", grid_image, global_step)
+        if centers is not None:
+            grid_image = make_grid(
+                torch.squeeze(centers[:3], 1).detach().cpu().data,
+                3,
+                normalize=True,
+            )
+            writer.add_image("Centers image", grid_image, global_step)

@@ -6,6 +6,7 @@ from torch.utils import data
 from mypath import Path
 from torchvision import transforms
 from dataloaders import custom_transforms as tr
+import cv2
 
 
 try:
@@ -291,8 +292,7 @@ class CityscapesPanoptic(data.Dataset):
             "train",
             "motorcycle",
             "bicycle",
-            "29"
-            "30"
+            "29" "30",
         ]
 
         self.ignore_index = 255
@@ -320,31 +320,89 @@ class CityscapesPanoptic(data.Dataset):
         for object_data in annotation_data:
             center = object_data["bbox"]
             label = object_data["label"]
-            # replace path with 2d gaussian
-            x0 = max(int(center["xmin"]), 0)
-            x1 = min(int(center["xmax"]), size[0])
-            y0 = max(int(center["ymin"]), 0)
-            y1 = min(int(center["ymax"]), size[1])
-            if (x1 - x0) % 2 != 0:
-                x1 -= 1
-            if (y1 - y0) % 2 != 0:
-                y1 -= 1
+            polygon = object_data["polygon"]
 
-            w = x1 - x0
-            h = y1 - y0
+            x, y, w, h = cv2.boundingRect(np.array(polygon))
 
+            # x0 = max(int(center["xmin"]), 0)
+            # x1 = min(int(center["xmax"]), size[0])
+            # y0 = max(int(center["ymin"]), 0)
+            # y1 = min(int(center["ymax"]), size[1])
+            # in case x is less than zero
+            if x < 0:
+                x = 0
+                w -= x
+            if y < 0:
+                y = 0
+                w -= y
+            if w % 2 != 0:
+                w -= 1
+            if h % 2 != 0:
+                h -= 1
+            # x0 = max(x, 0)
+            # x1 = min(x + w, size[0])
+            # y0 = max(y, 0)
+            # y1 = min(y + h, size[0])
+
+            x0 = x
+            x1 = x + w
+            y0 = y
+            y1 = y + h
+
+            # print("\n")
+            # print(
+            #     "w: {} h: {} x0: {} x1: {} y0: {} y1: {}".format(
+            #         w, h, x0, x1, y0, y1
+            #     )
+            # )
             c_x = w // 2
             c_y = h // 2
+            gaussian_patch = make_gaussian([w, h], center=[c_x, c_y])
 
-            gaussian_patch = make_gaussian([w, h])
-            centers_image[y0:y1, x0:x1] = np.maximum(
-                centers_image[y0:y1, x0:x1], gaussian_patch
-            )
+            mask = np.zeros_like(gaussian_patch)
+            cv2.fillPoly(mask, pts=[np.array(polygon)], color=(1, 1, 1))
+
+            try:
+                pass
+                centers_image[y0:y1, x0:x1] = np.maximum(
+                    centers_image[y0:y1, x0:x1], gaussian_patch
+                )
+            except ValueError as identifier:
+                continue
+                # plt.imshow(centers_image[y0:y1, x0:x1])
+                # plt.imshow(gaussian_patch)
+                # plt.show()
+                # print(centers_image[y0:y1, x0:x1].shape)
+                # print(gaussian_patch.shape)
+                # raise
+
+            if np.sum(mask) == 0:
+                mask = np.ones_like(mask)
+
+            # cv2.imshow("small mask", mask)
+            # cv2.waitKey(0)
 
             x_patch = np.tile(np.arange(-c_x, c_x), (h, 1))
             y_patch = np.tile(np.arange(-c_y, c_y), (w, 1)).T
-            x_reg[y0:y1, x0:x1] = x_patch
-            y_reg[y0:y1, x0:x1] = y_patch
+            # x_reg[y0:y1, x0:x1] = x_patch
+            # y_reg[y0:y1, x0:x1] = y_patch
+            # for very large areas where mask is wrong
+            # print(np.shape(mask), np.shape(centers_image))
+            # exit(0)
+            # if np.shape(mask)[1] == centers_image.shape[1]:
+            #     print(np.shape(mask), np.shape(centers_image))
+            #     cv2.imshow("large mask", mask)
+            #     cv2.waitKey(0)
+            #     mask = np.ones_like(mask)
+            x_reg[y0:y1, x0:x1] = np.where(
+                mask == 1, x_patch, x_reg[y0:y1, x0:x1]
+            )
+
+            y_reg[y0:y1, x0:x1] = np.where(
+                mask == 1, y_patch, y_reg[y0:y1, x0:x1]
+            )
+            # plt.imshow(y_patch)
+            # plt.show()
         return centers_image, x_reg, y_reg
 
     def __getitem__(self, index):
@@ -487,6 +545,11 @@ if __name__ == "__main__":
             x_reg = sample["x_reg"].numpy()[0]
             y_reg = sample["y_reg"].numpy()[0]
 
+            print(img.shape)
+            print(np.max(x_reg))
+            print(np.min(x_reg))
+            # exit(0)
+
             tmp = np.array(gt[jj]).astype(np.uint8)
             segmap = decode_segmap(tmp, dataset="pascal")
             img_tmp = np.transpose(img[jj], axes=[1, 2, 0])
@@ -496,8 +559,8 @@ if __name__ == "__main__":
             img_tmp = img_tmp.astype(np.uint8)
             center = center.astype(np.uint8) / 255.0
 
-            x_reg = x_reg.astype(np.uint8)
-            y_reg = y_reg.astype(np.uint8)
+            # x_reg = x_reg.astype(np.uint8)
+            # y_reg = y_reg.astype(np.uint8)
 
             plt.figure()
             plt.title("display")

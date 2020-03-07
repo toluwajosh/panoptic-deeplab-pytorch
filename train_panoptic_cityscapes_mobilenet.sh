@@ -4,13 +4,14 @@ python train_panoptic.py \
 --workers 8 \
 --epochs 100 \
 --batch-size 2 \
---checkname panoptic-deeplab-mobilenet-dsc-1 \
+--checkname panoptic-deeplab-mobilenet-test \
 --eval-interval 1 \
 --task panoptic \
+--resume /home/tjosh/codes/pytorch-deeplab-xception/run/cityscapes/panoptic-deeplab-mobilenet-dsc-1/model_best.pth.tar \
 --dataset cityscapes
-# --resume /home/tjosh/codes/pytorch-deeplab-xception/run/pascal/panoptic-deeplab-mobilenet-no-activation/model_best.pth.tar \
 
 
+# --checkname panoptic-deeplab-mobilenet-dsc-1 \
 
 # --resume ./run/pascal/panoptic-deeplab-mobilenet/model_best.pth.tar
 
