@@ -29,3 +29,5 @@ python train_panoptic.py \
 # wget --keep-session-cookies --save-cookies=cookies.txt --post-data 'username=YOUR_EMAIL&password=YOUR_PASSWORD&submit=Login' https://www.cityscapes-dataset.com/login/; history -d $((HISTCMD-1))
 
 # wget --load-cookies cookies.txt --content-disposition https://www.cityscapes-dataset.com/file-handling/?packageID=PACKAGE_ID
+
+# /home/tjosh_owoyemi/pytorch-panoptic-deeplab/run/cityscapes/panoptic-deeplab-mobilenet-21/model_best.pth.tar 
