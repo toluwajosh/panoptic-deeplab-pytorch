@@ -16,6 +16,10 @@ We already have a semantic segmentation branch of DeepLabV3+, so the rest of the
 - [X] Test training with slim backbone (mobileNet), and,
 - [ ] If successful, use a more robust backbone (ResNet 50/101).
 
+## Run on google cloud platform
+
+Download cityscape dataset as explained [here](https://github.com/reger-men/keras_multi_gpus/wiki/How-to-download-cityscapes-dataset-via-terminal)
+
 **see the original README below:**
 
 ## pytorch-deeplab-xception

@@ -24,3 +24,8 @@ python train_panoptic.py \
 # export PYTHONPATH=~/codes/pytorch-deeplab-xception/:$PYTHONPATH
 
 # tr -d '\r' < train_panoptic_voc_mobilenet.sh > train_panoptic_voc_mobilenet.sh
+
+
+# wget --keep-session-cookies --save-cookies=cookies.txt --post-data 'username=YOUR_EMAIL&password=YOUR_PASSWORD&submit=Login' https://www.cityscapes-dataset.com/login/; history -d $((HISTCMD-1))
+
+# wget --load-cookies cookies.txt --content-disposition https://www.cityscapes-dataset.com/file-handling/?packageID=PACKAGE_ID
