@@ -231,7 +231,7 @@ class CityscapesPanoptic(data.Dataset):
         )
 
         self.void_classes = [
-            0,
+            # 0,
             1,
             2,
             3,
@@ -244,7 +244,7 @@ class CityscapesPanoptic(data.Dataset):
             15,
             16,
             18,
-            # 29,
+            29,
             # 30,
             -1,
         ]
@@ -268,11 +268,10 @@ class CityscapesPanoptic(data.Dataset):
             31,
             32,
             33,
-            29,
-            30,
+            30,  # added
+            0,  # added
         ]
         self.class_names = [
-            "unlabelled",
             "road",
             "sidewalk",
             "building",
@@ -292,7 +291,8 @@ class CityscapesPanoptic(data.Dataset):
             "train",
             "motorcycle",
             "bicycle",
-            "29" "30",
+            "trailer",  # added
+            "unlabelled",  # added
         ]
 
         self.ignore_index = 255
