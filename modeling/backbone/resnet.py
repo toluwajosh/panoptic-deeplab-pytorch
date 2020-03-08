@@ -237,12 +237,42 @@ class ResNet(nn.Module):
         self.load_state_dict(state_dict)
 
 
+class ResNet3Stage(ResNet):
+    def forward(self, input):
+        x = self.conv1(input)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        low_level_feat = x
+        x = self.layer2(x)
+        x = self.layer3(x)
+        mid_level_feat = x
+        x = self.layer4(x)
+        return x, mid_level_feat, low_level_feat
+
 def ResNet101(output_stride, BatchNorm, pretrained=True):
     """Constructs a ResNet-101 model.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(
+        Bottleneck,
+        [3, 4, 23, 3],
+        output_stride,
+        BatchNorm,
+        pretrained=pretrained,
+    )
+    return model
+
+
+def ResNet101_3Stage(output_stride, BatchNorm, pretrained=True):
+    """Constructs a ResNet-101 model.
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = ResNet3Stage(
         Bottleneck,
         [3, 4, 23, 3],
         output_stride,

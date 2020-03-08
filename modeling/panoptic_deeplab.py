@@ -83,7 +83,7 @@ class PanopticDeepLab(nn.Module):
                 stride=1,
                 padding=1,
                 bias=False,
-                groups=32,  # dsc 2
+                groups=2,  # dsc 2
             ),
             BatchNorm(32),
             nn.ReLU(),

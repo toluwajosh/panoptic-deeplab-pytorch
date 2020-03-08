@@ -327,7 +327,7 @@ def main():
         "--backbone",
         type=str,
         default="resnet",
-        choices=["resnet", "xception", "drn", "mobilenet", "mobilenet_3stage"],
+        choices=["xception_3stage", "mobilenet_3stage", "resnet_3stage"],
         help="backbone name (default: resnet)",
     )
     parser.add_argument(

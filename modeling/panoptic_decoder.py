@@ -11,6 +11,12 @@ class Decoder(nn.Module):
         if backbone == "mobilenet_3stage":
             low_level_inplanes = 24
             mid_level_inplanes = 32
+        elif backbone == "xception_3stage":
+            low_level_inplanes = 128
+            mid_level_inplanes = 728
+        elif backbone == "resnet_3stage":
+            low_level_inplanes = 256
+            mid_level_inplanes = 1024
         else:
             raise NotImplementedError
 

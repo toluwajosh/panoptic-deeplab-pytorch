@@ -278,6 +278,63 @@ class AlignedXception(nn.Module):
         self.load_state_dict(state_dict)
 
 
+class AlignedXception3Stage(AlignedXception):
+    """
+    Modified Alighed Xception
+    """
+    def forward(self, x):
+        # Entry flow
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.relu(x)
+
+        x = self.block1(x)
+        # add relu here
+        x = self.relu(x)
+        low_level_feat = x
+        x = self.block2(x)
+        x = self.block3(x)
+
+        # Middle flow
+        x = self.block4(x)
+        x = self.block5(x)
+        x = self.block6(x)
+        x = self.block7(x)
+        x = self.block8(x)
+        x = self.block9(x)
+        x = self.block10(x)
+        x = self.block11(x)
+        x = self.block12(x)
+        x = self.block13(x)
+        x = self.block14(x)
+        x = self.block15(x)
+        x = self.block16(x)
+        x = self.block17(x)
+        x = self.block18(x)
+        x = self.block19(x)
+        mid_level_feat = x
+
+        # Exit flow
+        x = self.block20(x)
+        x = self.relu(x)
+        x = self.conv3(x)
+        x = self.bn3(x)
+        x = self.relu(x)
+
+        x = self.conv4(x)
+        x = self.bn4(x)
+        x = self.relu(x)
+
+        x = self.conv5(x)
+        x = self.bn5(x)
+        x = self.relu(x)
+
+        return x, mid_level_feat, low_level_feat
+
 
 if __name__ == "__main__":
     import torch

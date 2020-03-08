@@ -12,5 +12,9 @@ def build_backbone(backbone, output_stride, BatchNorm):
         return mobilenet.MobileNetV2(output_stride, BatchNorm)
     elif backbone == "mobilenet_3stage":
         return mobilenet.MobileNetV2_3Stage(output_stride, BatchNorm)
+    elif backbone == "xception_3stage":
+        return xception.AlignedXception3Stage(output_stride, BatchNorm)
+    if backbone == "resnet_3stage":
+        return resnet.ResNet101_3Stage(output_stride, BatchNorm)
     else:
         raise NotImplementedError
