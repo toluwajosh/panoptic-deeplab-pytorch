@@ -46,15 +46,18 @@ class Trainer(object):
             freeze_bn=args.freeze_bn,
         )
 
-        # # TODO(toluwajosh): Implement the following.
-        # train_params = [
-        #     {"params": model.get_1x_lr_params(), "lr": args.lr},
-        #     {"params": model.get_10x_lr_params(), "lr": args.lr * 10},
-        # ]
+        # TODO(toluwajosh): Implement the following.
+        if args.create_params:
+            train_params = [
+                {"params": model.get_1x_lr_params(), "lr": args.lr},
+                {"params": model.get_10x_lr_params(), "lr": args.lr * 10},
+            ]
+        else:
+            train_params = model.parameters()
 
         # Define Optimizer
         optimizer = torch.optim.SGD(
-            model.parameters(),
+            train_params,
             lr=args.lr,
             momentum=args.momentum,
             weight_decay=args.weight_decay,
@@ -128,7 +131,8 @@ class Trainer(object):
         train_loss = 0.0
         semantic_loss_out = 0.0
         center_loss_out = 0.0
-        center_regress_loss_out = 0.0
+        reg_x_loss_out = 0.0
+        reg_y_loss_out = 0.0
         self.model.train()
         tbar = tqdm(self.train_loader)
         num_img_tr = len(self.train_loader)
@@ -159,25 +163,28 @@ class Trainer(object):
             (
                 semantic_loss,
                 center_loss,
-                center_regress_loss,
+                reg_x_loss,
+                reg_y_loss,
             ) = self.criterion.forward(output, label, center, x_reg, y_reg)
 
             # total loss
-            loss = semantic_loss + center_loss + center_regress_loss
+            loss = semantic_loss + center_loss + reg_x_loss + reg_y_loss
 
             loss.backward()
             self.optimizer.step()
             train_loss += loss.item()
             semantic_loss_out += semantic_loss.item()
             center_loss_out += center_loss.item()
-            center_regress_loss_out += center_regress_loss.item()
+            reg_x_loss_out += reg_x_loss.item()
+            reg_y_loss_out += reg_y_loss.item()
             tbar.set_description(
-                "Train loss: %.3f, Semantic loss: %.3f, Center loss: %.3f, Center regress loss: %.3f"
+                "Losses -> Train: %.3f, Semantic: %.3f, Center: %.3f, x_reg: %.3f, y_reg: %.3f"
                 % (
                     train_loss / (i + 1),
                     semantic_loss_out / (i + 1),
                     center_loss_out / (i + 1),
-                    center_regress_loss_out / (i + 1),
+                    reg_x_loss_out / (i + 1),
+                    reg_y_loss_out / (i + 1),
                 )
             )
 
@@ -194,8 +201,14 @@ class Trainer(object):
             )
 
             self.writer.add_scalar(
-                "train/center_regress_loss_iter",
-                center_regress_loss.item(),
+                "train/reg_x_loss_iter",
+                reg_x_loss.item(),
+                i + num_img_tr * epoch,
+            )
+
+            self.writer.add_scalar(
+                "train/reg_y_loss_iter",
+                reg_y_loss.item(),
                 i + num_img_tr * epoch,
             )
 
@@ -269,11 +282,12 @@ class Trainer(object):
             (
                 semantic_loss,
                 center_loss,
-                center_regress_loss,
+                reg_x_loss,
+                reg_y_loss,
             ) = self.criterion.forward(output, label, center, x_reg, y_reg)
 
             # total loss
-            loss = semantic_loss + center_loss + center_regress_loss
+            loss = semantic_loss + center_loss + reg_x_loss + reg_y_loss
             test_loss += loss.item()
             tbar.set_description("Test loss: %.3f" % (test_loss / (i + 1)))
             pred = output[0].data.cpu().numpy()
@@ -510,6 +524,12 @@ def main():
         action="store_true",
         default=False,
         help="skip validation during training",
+    )
+    parser.add_argument(
+        "--create-params",
+        action="store_true",
+        default=False,
+        help="create manual parameter groups for optimizer",
     )
 
     args = parser.parse_args()

@@ -135,6 +135,8 @@ class PanopticLosses(object):
     def forward(self, prediction, label, center, x_reg, y_reg):
         # b, w, h = center.shape
         x_semantic, x_center, x_center_regress = prediction
+        reg_x_pred = x_center_regress[:, 0, :, :]
+        reg_y_pred = x_center_regress[:, 1, :, :]
 
         # # normalize targets
         # center = center / 255.0
@@ -150,9 +152,18 @@ class PanopticLosses(object):
         # calculate losses
         semantic_loss = self.semantic_loss(x_semantic, label)
         center_loss = mse_loss(x_center, center.unsqueeze(1))
-        center_regress = torch.cat([x_reg.unsqueeze(1), y_reg.unsqueeze(1)], 1)
-        center_regress_loss = l1_loss(x_center_regress, center_regress)
-        return semantic_loss, center_loss *0.01 , center_regress_loss *0.01
+        # center_regress = torch.cat([x_reg.unsqueeze(1), y_reg.unsqueeze(1)], 1)
+
+        # center_regress_loss = l1_loss(x_center_regress, center_regress)
+
+        reg_x_loss = l1_loss(reg_x_pred, x_reg)
+        reg_y_loss = l1_loss(reg_y_pred, y_reg)
+        return (
+            semantic_loss,
+            center_loss,
+            reg_x_loss,
+            reg_y_loss,
+        )
 
 
 if __name__ == "__main__":

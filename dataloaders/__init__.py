@@ -51,11 +51,6 @@ def make_data_loader(args, **kwargs):
         test_loader = DataLoader(
             test_set, batch_size=args.batch_size, shuffle=False, **kwargs
         )
-        # if args.use_sbd:
-        #     voc_train = pascal.VOCPanoptic(args, split=["train", "val"])
-        #     train_set = combine_dbs.CombineDBs(
-        #         [train_set, voc_train], excluded=[val_set]
-        #     )
 
         return train_loader, val_loader, test_loader, num_class
 

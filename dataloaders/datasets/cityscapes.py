@@ -375,7 +375,6 @@ class CityscapesPanoptic(data.Dataset):
             x_reg[y0:y1, x0:x1] = np.where(
                 mask == 1, x_patch, x_reg[y0:y1, x0:x1]
             )
-
             y_reg[y0:y1, x0:x1] = np.where(
                 mask == 1, y_patch, y_reg[y0:y1, x0:x1]
             )
@@ -479,7 +478,7 @@ class CityscapesPanoptic(data.Dataset):
 
         composed_transforms = transforms.Compose(
             [
-                tr.FixedResize(size=self.args.crop_size),
+                # tr.FixedResize(size=self.args.crop_size),
                 tr.Normalize(
                     mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
                 ),
@@ -524,6 +523,8 @@ if __name__ == "__main__":
             print(img.shape)
             print(np.max(x_reg))
             print(np.min(x_reg))
+            print(np.max(y_reg))
+            print(np.min(y_reg))
             # exit(0)
 
             tmp = np.array(gt[jj]).astype(np.uint8)
@@ -534,9 +535,6 @@ if __name__ == "__main__":
             img_tmp *= 255.0
             img_tmp = img_tmp.astype(np.uint8)
             center = center.astype(np.uint8) / 255.0
-
-            # x_reg = x_reg.astype(np.uint8)
-            # y_reg = y_reg.astype(np.uint8)
 
             plt.figure()
             plt.title("display")

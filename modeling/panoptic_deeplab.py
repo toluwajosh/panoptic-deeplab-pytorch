@@ -43,19 +43,19 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=5,
                 stride=1,
                 padding=1,
-                bias=False,
+                #bias=False, # xception-old
                 groups=256,  # dsc 1
             ),
             BatchNorm(256),
             nn.ReLU(),
-            nn.Dropout(0.1),
+            nn.Dropout(0.4),
             nn.Conv2d(
                 256,
                 num_classes,
                 kernel_size=1,
                 stride=1,
                 padding=1,
-                bias=False,
+                #bias=False, # xception-old
             ),
         )
 
@@ -66,12 +66,12 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=5,
                 stride=1,
                 padding=1,
-                bias=False,
+                #bias=False, # xception-old
                 groups=32,  # dsc 1
             ),
             BatchNorm(32),
             nn.ReLU(),
-            nn.Dropout(0.1),
+            nn.Dropout(0.4),
             nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=1, bias=False,),
         )
 
@@ -82,19 +82,20 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=5,
                 stride=1,
                 padding=1,
-                bias=False,
-                groups=2,  # dsc 2
+                #bias=False, # xception-old
+                # groups=2,  # dsc 2, xception-old
+                groups=32,  # -21, dsc 1
             ),
             BatchNorm(32),
             nn.ReLU(),
-            nn.Dropout(0.1),
+            nn.Dropout(0.4),
             nn.Conv2d(
                 32,
                 2,
                 kernel_size=1,
                 stride=1,
                 padding=1,
-                bias=False,
+                #bias=False, # xception-old
                 groups=2,
             ),
             # nn.Tanh(),
@@ -135,51 +136,55 @@ class PanopticDeepLab(nn.Module):
         return x_semantic, x_center_predict, x_center_regress
 
     # TODO(toluwajosh): resolve the conflict
-    # def freeze_bn(self):
-    #     for m in self.modules():
-    #         if isinstance(m, SynchronizedBatchNorm2d):
-    #             m.eval()
-    #         elif isinstance(m, nn.BatchNorm2d):
-    #             m.eval()
+    def freeze_bn(self):
+        for m in self.modules():
+            if isinstance(m, SynchronizedBatchNorm2d):
+                m.eval()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.eval()
 
-    # # TODO(toluwajosh):
-    # def get_1x_lr_params(self):
-    #     modules = [self.backbone]
-    #     for i in range(len(modules)):
-    #         for m in modules[i].named_modules():
-    #             if self.freeze_bn:
-    #                 if isinstance(m[1], nn.Conv2d):
-    #                     for p in m[1].parameters():
-    #                         if p.requires_grad:
-    #                             yield p
-    #             else:
-    #                 if (
-    #                     isinstance(m[1], nn.Conv2d)
-    #                     or isinstance(m[1], SynchronizedBatchNorm2d)
-    #                     or isinstance(m[1], nn.BatchNorm2d)
-    #                 ):
-    #                     for p in m[1].parameters():
-    #                         if p.requires_grad:
-    #                             yield p
+    def get_1x_lr_params(self):
+        modules = [self.backbone]
+        for i in range(len(modules)):
+            for m in modules[i].named_modules():
+                if self.freeze_bn:
+                    if isinstance(m[1], nn.Conv2d):
+                        for p in m[1].parameters():
+                            if p.requires_grad:
+                                yield p
+                else:
+                    if (
+                        isinstance(m[1], nn.Conv2d)
+                        or isinstance(m[1], SynchronizedBatchNorm2d)
+                        or isinstance(m[1], nn.BatchNorm2d)
+                    ):
+                        for p in m[1].parameters():
+                            if p.requires_grad:
+                                yield p
 
-    # def get_10x_lr_params(self):
-    #     modules = [self.aspp, self.decoder]
-    #     for i in range(len(modules)):
-    #         for m in modules[i].named_modules():
-    #             if self.freeze_bn:
-    #                 if isinstance(m[1], nn.Conv2d):
-    #                     for p in m[1].parameters():
-    #                         if p.requires_grad:
-    #                             yield p
-    #             else:
-    #                 if (
-    #                     isinstance(m[1], nn.Conv2d)
-    #                     or isinstance(m[1], SynchronizedBatchNorm2d)
-    #                     or isinstance(m[1], nn.BatchNorm2d)
-    #                 ):
-    #                     for p in m[1].parameters():
-    #                         if p.requires_grad:
-    #                             yield p
+    def get_10x_lr_params(self):
+        modules = [
+            self.aspp_pan,
+            self.aspp_pan,
+            self.semantic_decoder,
+            self.panoptic_decoder,
+        ]
+        for i in range(len(modules)):
+            for m in modules[i].named_modules():
+                if self.freeze_bn:
+                    if isinstance(m[1], nn.Conv2d):
+                        for p in m[1].parameters():
+                            if p.requires_grad:
+                                yield p
+                else:
+                    if (
+                        isinstance(m[1], nn.Conv2d)
+                        or isinstance(m[1], SynchronizedBatchNorm2d)
+                        or isinstance(m[1], nn.BatchNorm2d)
+                    ):
+                        for p in m[1].parameters():
+                            if p.requires_grad:
+                                yield p
 
 
 if __name__ == "__main__":
