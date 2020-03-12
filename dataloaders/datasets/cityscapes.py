@@ -298,6 +298,23 @@ class CityscapesPanoptic(data.Dataset):
         self.ignore_index = 255
         self.class_map = dict(zip(self.valid_classes, range(self.NUM_CLASSES)))
 
+        # hardcoded things category
+        # self.things_category = [5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18]
+        self.things_category = [
+            "pole",
+            "traffic light",
+            "traffic sign",
+            "person",
+            "rider",
+            "car",
+            "truck",
+            "bus",
+            "train",
+            "motorcycle",
+            "bicycle",
+            "trailer",
+        ]
+
         if not self.files[split]:
             raise Exception(
                 "No files for split=[%s] found in %s"
@@ -320,6 +337,8 @@ class CityscapesPanoptic(data.Dataset):
         for object_data in annotation_data:
             center = object_data["bbox"]
             label = object_data["label"]
+            if label not in self.things_category:
+                continue
             polygon = np.int0(object_data["polygon"])
             minx = np.min(polygon[:, 0])
             miny = np.min(polygon[:, 1])

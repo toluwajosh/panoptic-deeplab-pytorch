@@ -90,7 +90,11 @@ class Trainer(object):
         self.evaluator = Evaluator(self.nclass)
         # Define lr scheduler
         self.scheduler = LR_Scheduler(
-            args.lr_scheduler, args.lr, args.epochs, len(self.train_loader)
+            args.lr_scheduler,
+            args.lr,
+            args.epochs,
+            len(self.train_loader),
+            lr_step=args.lr_step,
         )
 
         # Using cuda
@@ -529,6 +533,12 @@ def main():
         "--create-params",
         action="store_true",
         default=False,
+        help="create manual parameter groups for optimizer",
+    )
+    parser.add_argument(
+        "--lr-step",
+        type=float,
+        default=50,
         help="create manual parameter groups for optimizer",
     )
 

@@ -43,8 +43,8 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=5,
                 stride=1,
                 padding=1,
-                #bias=False, # xception-old
-                groups=256,  # dsc 1
+                # bias=False,  # xception-old, - 21
+                groups=256,  # dsc 1, too slow without this
             ),
             BatchNorm(256),
             nn.ReLU(),
@@ -55,7 +55,7 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=1,
                 stride=1,
                 padding=1,
-                #bias=False, # xception-old
+                # bias=False,  # xception-old, - 21
             ),
         )
 
@@ -66,12 +66,12 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=5,
                 stride=1,
                 padding=1,
-                #bias=False, # xception-old
+                # bias=False,  # xception-old, - 21
                 groups=32,  # dsc 1
             ),
             BatchNorm(32),
             nn.ReLU(),
-            nn.Dropout(0.4),
+            nn.Dropout(0.5),
             nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=1, bias=False,),
         )
 
@@ -82,21 +82,21 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=5,
                 stride=1,
                 padding=1,
-                #bias=False, # xception-old
-                # groups=2,  # dsc 2, xception-old
-                groups=32,  # -21, dsc 1
+                # bias=False,  # xception-old, - 21
+                groups=2,  # dsc 2, xception-old
+                # groups=32,  # -21, dsc 1
             ),
             BatchNorm(32),
             nn.ReLU(),
-            nn.Dropout(0.4),
+            nn.Dropout(0.75),
             nn.Conv2d(
                 32,
                 2,
                 kernel_size=1,
                 stride=1,
                 padding=1,
-                #bias=False, # xception-old
-                groups=2,
+                # bias=False,  # xception-old, - 21
+                groups=2,  # dsc 2
             ),
             # nn.Tanh(),
         )
