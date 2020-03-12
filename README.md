@@ -12,9 +12,10 @@ We already have a semantic segmentation branch of DeepLabV3+, so the rest of the
 - [X] Panoptic Dataloader for Citiscapes
 - [ ] Panoptic Dataloader for COCO
 - [ ] Combine VOC and Citiscapes training data
-- [ ] Apply 5×5 depthwise-separable convolution
-- [X] Test training with slim backbone (mobileNet), and,
-- [ ] If successful, use a more robust backbone (ResNet 50/101).
+- [X] Apply 5×5 depthwise-separable convolution. (Not as in the paper)
+- [X] Test training with slim backbone (mobileNet), and
+- [X] Training with xception backbone
+- [ ] Training with ResNet backbone
 
 ## Run on google cloud platform
 

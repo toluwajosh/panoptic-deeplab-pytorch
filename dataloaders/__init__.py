@@ -8,16 +8,15 @@ def make_data_loader(args, **kwargs):
         if args.task == "segmentation":
             train_set = pascal.VOCSegmentation(args, split="train")
             val_set = pascal.VOCSegmentation(args, split="val")
+            if args.use_sbd:
+                sbd_train = sbd.SBDSegmentation(args, split=["train", "val"])
+                train_set = combine_dbs.CombineDBs(
+                    [train_set, sbd_train], excluded=[val_set]
+                )
         elif args.task == "panoptic":
             train_set = pascal.VOCPanoptic(args, split="train")
             val_set = pascal.VOCPanoptic(args, split="val")
-        # if args.use_sbd:
-        #     sbd_train = sbd.SBDSegmentation(args, split=["train", "val"])
-        #     train_set = combine_dbs.CombineDBs(
-        #         [train_set, sbd_train], excluded=[val_set]
-        #     )
-        # we can also combine citiscapes
-        
+
         num_class = train_set.NUM_CLASSES
         train_loader = DataLoader(
             train_set, batch_size=args.batch_size, shuffle=True, **kwargs
