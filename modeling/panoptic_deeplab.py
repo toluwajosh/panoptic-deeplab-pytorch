@@ -72,7 +72,14 @@ class PanopticDeepLab(nn.Module):
             BatchNorm(32),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=1, bias=False,),
+            nn.Conv2d(
+                32,
+                out_channels=1,
+                kernel_size=1,
+                stride=1,
+                padding=1,
+                # bias=False,  # not in final
+            ),
         )
 
         self.instance_center_regress = nn.Sequential(

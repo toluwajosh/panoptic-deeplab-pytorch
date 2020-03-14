@@ -47,14 +47,16 @@ class LR_Scheduler(object):
         elif self.mode == 'poly':
             lr = self.lr * pow((1 - 1.0 * T / self.N), 0.9)
         elif self.mode == 'step':
-            lr = self.lr * (0.1 ** (epoch // self.lr_step))
+            # this acted more like a flip step, does not account for fraction powers
+            # lr = self.lr * (0.1 ** (epoch // self.lr_step))
+            lr = self.lr * (0.1 ** (epoch / self.lr_step))
         else:
             raise NotImplemented
         # warm up lr schedule
         if self.warmup_iters > 0 and T < self.warmup_iters:
             lr = lr * 1.0 * T / self.warmup_iters
         if epoch > self.epoch:
-            print('\n=>Epoches %i, learning rate = %.4f, \
+            print('\n=>Epoches %i, learning rate = %.5f, \
                 previous best = %.4f' % (epoch, lr, best_pred))
             self.epoch = epoch
         assert lr >= 0

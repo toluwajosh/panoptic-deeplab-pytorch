@@ -160,7 +160,7 @@ class PanopticLosses(object):
         y_reg_loss = l1_loss(y_reg_pred, y_reg)
         return (
             semantic_loss,
-            center_loss,
+            center_loss*0.1,
             x_reg_loss,
             y_reg_loss,
         )
