@@ -1,18 +1,18 @@
 python train_panoptic.py \
 --backbone mobilenet_3stage \
---lr 0.01 \
+--lr 0.001 \
 --lr-scheduler step \
---lr-step 40 \
+--lr-step 100 \
 --epochs 200 \
 --batch-size 2 \
---checkname panoptic-deeplab-mobilenet-dsc2-final \
+--checkname panoptic-deeplab-mobilenet-assorted-test \
 --eval-interval 1 \
 --task panoptic \
 --dataset cityscapes
 
+# --resume /home/tjosh/codes/pytorch-deeplab-xception/run/cityscapes/panoptic-deeplab-mobilenet-assorted/model_best.pth.tar \
 
 # --create-params
-# --resume /home/tjosh/codes/pytorch-deeplab-xception/run/cityscapes/panoptic-deeplab-mobilenet-dsc2-with-bias/model_best.pth.tar \
 # --workers 4 \
 # --resume /home/tjosh/codes/pytorch-deeplab-xception/run/cityscapes/panoptic-deeplab-mobilenet-regsplit/model_best.pth.tar \
 # --checkname panoptic-deeplab-mobilenet-dsc-1 \

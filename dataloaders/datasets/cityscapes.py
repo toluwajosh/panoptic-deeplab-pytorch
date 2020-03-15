@@ -422,6 +422,7 @@ class CityscapesPanoptic(data.Dataset):
         _centers, x_reg, y_reg = self.load_centers_and_regression(
             annotation_file, _img.size
         )
+        # _centers = Image.fromarray(np.float32(_centers))
         _centers = Image.fromarray(np.uint8(_centers * 255))
         x_reg = Image.fromarray(np.int32(x_reg), "I")
         y_reg = Image.fromarray(np.int32(y_reg), "I")
@@ -540,6 +541,8 @@ if __name__ == "__main__":
             y_reg = sample["y_reg"].numpy()[0]
 
             print(img.shape)
+            print(np.max(center))
+            print(np.min(center))
             print(np.max(x_reg))
             print(np.min(x_reg))
             print(np.max(y_reg))
@@ -553,7 +556,7 @@ if __name__ == "__main__":
             img_tmp += (0.485, 0.456, 0.406)
             img_tmp *= 255.0
             img_tmp = img_tmp.astype(np.uint8)
-            center = center.astype(np.uint8) / 255.0
+            # center = center.astype(np.uint8) / 255.0
 
             plt.figure()
             plt.title("display")
@@ -562,7 +565,7 @@ if __name__ == "__main__":
             plt.subplot(221)
             plt.imshow(segmap)
             plt.subplot(222)
-            plt.imshow(center)
+            plt.imshow(center*255)
             plt.subplot(223)
             plt.imshow(x_reg)
             plt.subplot(224)

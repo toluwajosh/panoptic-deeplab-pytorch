@@ -80,9 +80,10 @@ class PanopticDeepLab(nn.Module):
                 padding=1,
                 # bias=False,  # not in final
             ),
+            nn.ReLU(),
         )
 
-        self.instance_center_regress = nn.Sequential(
+        self.instance_center_regress_x = nn.Sequential(
             nn.Conv2d(
                 128,
                 32,
@@ -98,7 +99,7 @@ class PanopticDeepLab(nn.Module):
             nn.Dropout(0.75),
             nn.Conv2d(
                 32,
-                2,
+                1,
                 kernel_size=1,
                 stride=1,
                 padding=1,
@@ -106,6 +107,34 @@ class PanopticDeepLab(nn.Module):
                 groups=2,  # dsc 2
             ),
             # nn.Tanh(),
+            # nn.LeakyReLU(negative_slope=0.89),
+        )
+
+        self.instance_center_regress_y = nn.Sequential(
+            nn.Conv2d(
+                128,
+                32,
+                kernel_size=5,
+                stride=1,
+                padding=1,
+                # bias=False,  # xception-old, - 21
+                groups=2,  # dsc 2, xception-old
+                # groups=32,  # -21, dsc 1
+            ),
+            BatchNorm(32),
+            nn.ReLU(),
+            nn.Dropout(0.75),
+            nn.Conv2d(
+                32,
+                1,
+                kernel_size=1,
+                stride=1,
+                padding=1,
+                # bias=False,  # xception-old, - 21
+                groups=2,  # dsc 2
+            ),
+            # nn.Tanh(),
+            # nn.LeakyReLU(negative_slope=0.89),
         )
 
         self.freeze_bn = freeze_bn

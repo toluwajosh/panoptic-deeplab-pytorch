@@ -134,8 +134,8 @@ class PanopticLosses(object):
 
     def forward(self, prediction, label, center, x_reg, y_reg):
         semantic_predict, center_predict, center_regress_predict = prediction
-        x_reg_pred = center_regress_predict[:, 0, :, :]
-        y_reg_pred = center_regress_predict[:, 1, :, :]
+        x_reg_pred = center_regress_predict[:, 0, :, :]*60
+        y_reg_pred = center_regress_predict[:, 1, :, :]*50
 
         # Debug:
         # print(torch.min(center))
@@ -145,22 +145,23 @@ class PanopticLosses(object):
         # print(torch.min(y_reg))
         # print(torch.max(y_reg))
 
-        # print(torch.min(x_center))
-        # print(torch.max(x_center))
-        # print(torch.min(x_reg_pred))
-        # print(torch.max(x_reg_pred))
-        # print(torch.min(y_reg_pred))
-        # print(torch.max(y_reg_pred))
+        print(torch.min(center_predict).data)
+        print(torch.max(center_predict).data)
+        print(torch.min(x_reg_pred).data)
+        print(torch.max(x_reg_pred).data)
+        print(torch.min(y_reg_pred).data)
+        print(torch.max(y_reg_pred).data)
         # exit(0)
 
         # calculate losses
         semantic_loss = self.semantic_loss(semantic_predict, label)
         center_loss = mse_loss(center_predict, center.unsqueeze(1))
+        # center_loss = l1_loss(center_predict, center.unsqueeze(1))
         x_reg_loss = l1_loss(x_reg_pred, x_reg)
         y_reg_loss = l1_loss(y_reg_pred, y_reg)
         return (
-            semantic_loss,
-            center_loss*0.1,
+            semantic_loss*10,
+            center_loss,
             x_reg_loss,
             y_reg_loss,
         )

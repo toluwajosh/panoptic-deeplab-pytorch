@@ -76,6 +76,129 @@ class Tester(object):
             )
         )
 
+    def test_grouping(self, epoch):
+        self.model.eval()
+        # self.evaluator.reset()
+        tbar = tqdm(self.val_loader, desc="\r")
+        test_loss = 0.0
+        for i, sample in enumerate(tbar):
+            image, label, center, x_reg, y_reg = (
+                sample["image"],
+                sample["label"],
+                sample["center"],
+                sample["x_reg"],
+                sample["y_reg"],
+            )
+            if self.args.cuda:
+                image, label = image.cuda(), label.cuda()
+                input_image = F.interpolate(
+                    image,
+                    size=[513, 513],
+                    mode="bilinear",
+                    align_corners=True,
+                )
+            with torch.no_grad():
+                try:
+                    output = self.model(input_image)
+                except ValueError as identifier:
+                    # there was an error with wrong input size
+                    print("Error: ", identifier)
+                    continue
+            prediction = F.interpolate(
+                output[0],
+                size=image.size()[2:],
+                mode="bilinear",
+                align_corners=True,
+            )
+            prediction = prediction.data.cpu().numpy()
+            # label = label.cpu().numpy()
+            prediction = np.argmax(prediction, axis=1)
+            centers = output[1]
+            plt.imshow(centers[0][0].data.cpu().numpy())
+
+            centers = F.interpolate(
+                centers,
+                size=image.size()[2:],
+                mode="bilinear",
+                align_corners=True,
+            )
+
+            # max pool according to paper
+            centers_new = F.max_pool2d(centers, 7, stride=1, padding=3)
+
+            # use thresholding=0.1 (of 255)
+            centers = torch.where(
+                centers == centers_new, centers, torch.zeros_like(centers)
+            )
+            # choose top k points, need to sort, then choose the top
+            # centers = torch.where(centers>10, torch.ones_like(centers), torch.zeros_like(centers))
+            centers_reg = F.interpolate(
+                output[2],
+                size=image.size()[2:],
+                mode="bilinear",
+                align_corners=True,
+            )
+
+            # print(output[2].shape)
+            # exit(0)
+            points = (centers > 0.1 * 255).nonzero()
+            print("points.shape: ", points.shape)
+            print("centers_reg.shape: ", centers_reg.shape)
+            points_only = points[:, 2:].unsqueeze(-1).unsqueeze(
+                -1
+            ) * torch.ones_like(centers_reg)
+            print("points_only.shape: ", points_only.shape)
+
+            # x_reg = centers_reg[0][0]
+            # y_reg = centers_reg[0][1]
+            # print("x_reg.shape: ", x_reg.shape)
+            # print("prediction.shape: ", prediction.shape)
+
+            diff_sqr = (points_only - centers_reg) ** 2
+            mag = torch.sqrt(diff_sqr[:, 0, :, :] + diff_sqr[:, 1, :, :])
+            # print("mag: ", mag.shape)
+            # final = torch.argmin(mag, 0)
+            # print(final)
+            # show = (final/torch.max(final)).data.cpu().numpy()
+            # plt.imshow(final.data.cpu().numpy())
+            # plt.show()
+            # h, w = x_reg.shape
+            # gridx, gridy = torch.meshgrid(torch.arange(h), torch.arange(w))
+            # x_new = gridx.cuda() + x_reg
+            # y_new = gridy.cuda() + y_reg
+            # exit(0)
+
+            # display outputs
+            # out_image = decode_seg_map_sequence(
+            #     prediction, dataset=self.args.dataset,
+            # )[0].permute(1, 2, 0)
+
+            # # out x_reg prediction
+            # out_image = centers_reg[0][0].data.cpu().numpy()
+
+            # out y_reg prediction
+            out_image = centers_reg[0][1].data.cpu().numpy()
+
+            # # out x_reg gt
+            # out_image = x_reg[0].data.cpu().numpy()
+
+            # # out y_reg gt
+            # out_image = y_reg[0].data.cpu().numpy()
+
+            img_tmp = np.transpose(image[0].cpu().numpy(), axes=[1, 2, 0])
+            img_tmp *= (0.229, 0.224, 0.225)
+            img_tmp += (0.485, 0.456, 0.406)
+            img_tmp *= 255.0
+            img_tmp = img_tmp.astype(np.uint8)
+
+            plt.figure()
+            plt.subplot(121)
+            plt.imshow(img_tmp)
+            # this should be final image
+            plt.subplot(122)
+            plt.imshow(out_image)
+            plt.show()
+
     def evaluate(self, epoch):
         self.model.eval()
         # self.evaluator.reset()
@@ -148,8 +271,8 @@ class Tester(object):
             print("x_reg.shape: ", x_reg.shape)
             print("prediction.shape: ", prediction.shape)
 
-            diff_sqr = (points_only - centers_reg)**2
-            mag = torch.sqrt(diff_sqr[:,0,:,:]+diff_sqr[:,1,:,:])
+            diff_sqr = (points_only - centers_reg) ** 2
+            mag = torch.sqrt(diff_sqr[:, 0, :, :] + diff_sqr[:, 1, :, :])
             print("mag: ", mag.shape)
             final = torch.argmin(mag, 0)
             # print(final)
@@ -400,7 +523,8 @@ def main():
     print(args)
     torch.manual_seed(args.seed)
     tester = Tester(args)
-    tester.evaluate(0)
+    # tester.evaluate(0)
+    tester.test_grouping(0)
 
 
 if __name__ == "__main__":
