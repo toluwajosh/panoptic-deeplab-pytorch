@@ -1,11 +1,11 @@
 python train_panoptic.py \
 --backbone mobilenet_3stage \
---lr 0.001 \
+--lr 0.01 \
 --lr-scheduler step \
---lr-step 100 \
+--lr-step 30 \
 --epochs 200 \
 --batch-size 2 \
---checkname panoptic-deeplab-mobilenet-assorted-test \
+--checkname panoptic-deeplab-mobilenet-all-splitted \
 --eval-interval 1 \
 --task panoptic \
 --dataset cityscapes

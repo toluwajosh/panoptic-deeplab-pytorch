@@ -133,9 +133,9 @@ class PanopticLosses(object):
         return loss
 
     def forward(self, prediction, label, center, x_reg, y_reg):
-        semantic_predict, center_predict, center_regress_predict = prediction
-        x_reg_pred = center_regress_predict[:, 0, :, :]*60
-        y_reg_pred = center_regress_predict[:, 1, :, :]*50
+        semantic_predict, center_predict, x_reg_pred, y_reg_pred = prediction
+        # x_reg_pred = center_regress_predict[:, 0, :, :]*60
+        # y_reg_pred = center_regress_predict[:, 1, :, :]*50
 
         # Debug:
         # print(torch.min(center))
@@ -144,26 +144,27 @@ class PanopticLosses(object):
         # print(torch.max(x_reg))
         # print(torch.min(y_reg))
         # print(torch.max(y_reg))
+        # print()
 
-        print(torch.min(center_predict).data)
-        print(torch.max(center_predict).data)
-        print(torch.min(x_reg_pred).data)
-        print(torch.max(x_reg_pred).data)
-        print(torch.min(y_reg_pred).data)
-        print(torch.max(y_reg_pred).data)
+        # print(torch.min(center_predict).data)
+        # print(torch.max(center_predict).data)
+        # print(torch.min(x_reg_pred).data)
+        # print(torch.max(x_reg_pred).data)
+        # print(torch.min(y_reg_pred).data)
+        # print(torch.max(y_reg_pred).data)
         # exit(0)
 
         # calculate losses
         semantic_loss = self.semantic_loss(semantic_predict, label)
         center_loss = mse_loss(center_predict, center.unsqueeze(1))
         # center_loss = l1_loss(center_predict, center.unsqueeze(1))
-        x_reg_loss = l1_loss(x_reg_pred, x_reg)
-        y_reg_loss = l1_loss(y_reg_pred, y_reg)
+        x_reg_loss = mse_loss(x_reg_pred, x_reg.unsqueeze(1))
+        y_reg_loss = mse_loss(y_reg_pred, y_reg.unsqueeze(1))
         return (
-            semantic_loss*10,
-            center_loss,
-            x_reg_loss,
-            y_reg_loss,
+            semantic_loss,
+            center_loss * 0.1,
+            x_reg_loss * 0.01,
+            y_reg_loss * 0.1,
         )
 
 

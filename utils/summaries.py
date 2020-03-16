@@ -22,10 +22,11 @@ class TensorboardSummary(object):
         output,
         global_step,
         centers=None,
-        reg=None,
+        reg_x=None,
+        reg_y=None,
     ):
-        reg_x = reg[:, 0:1, :, :]
-        reg_y = reg[:, 1:2, :, :]
+        # reg_x = reg[:, 0:1, :, :]
+        # reg_y = reg[:, 1:2, :, :]
         grid_image = make_grid(image[:3].clone().cpu().data, 3, normalize=True)
         writer.add_image("Image", grid_image, global_step)
         grid_image = make_grid(

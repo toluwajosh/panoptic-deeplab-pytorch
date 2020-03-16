@@ -28,13 +28,17 @@ class PanopticDeepLab(nn.Module):
 
         self.backbone = build_backbone(backbone, output_stride, BatchNorm)
 
+        panoptic_out = 96
+
         # backbone context
         self.aspp_sem = build_aspp(backbone, output_stride, BatchNorm)
         self.aspp_pan = build_aspp(backbone, output_stride, BatchNorm)
         # semantic decoder
         self.semantic_decoder = build_decoder(256, backbone, BatchNorm)
         # TODO(toluwajosh): instance decoder
-        self.panoptic_decoder = build_decoder(128, backbone, BatchNorm)
+        self.panoptic_decoder = build_decoder(
+            panoptic_out, backbone, BatchNorm
+        )
 
         self.semantic_predict = nn.Sequential(
             nn.Conv2d(
@@ -61,7 +65,7 @@ class PanopticDeepLab(nn.Module):
 
         self.instance_center_predict = nn.Sequential(
             nn.Conv2d(
-                128,
+                panoptic_out,
                 32,
                 kernel_size=5,
                 stride=1,
@@ -83,28 +87,29 @@ class PanopticDeepLab(nn.Module):
             nn.ReLU(),
         )
 
+        inter_channels = 32
         self.instance_center_regress_x = nn.Sequential(
             nn.Conv2d(
-                128,
-                32,
+                panoptic_out,
+                inter_channels,
                 kernel_size=5,
                 stride=1,
                 padding=1,
                 # bias=False,  # xception-old, - 21
-                groups=2,  # dsc 2, xception-old
-                # groups=32,  # -21, dsc 1
+                # groups=inter_channels,  # dsc 2, xception-old
+                groups=inter_channels,  # -21, dsc 1
             ),
-            BatchNorm(32),
+            BatchNorm(inter_channels),
             nn.ReLU(),
-            nn.Dropout(0.75),
+            nn.Dropout(0.5),
             nn.Conv2d(
-                32,
+                inter_channels,
                 1,
                 kernel_size=1,
                 stride=1,
                 padding=1,
                 # bias=False,  # xception-old, - 21
-                groups=2,  # dsc 2
+                # groups=2,  # dsc 2
             ),
             # nn.Tanh(),
             # nn.LeakyReLU(negative_slope=0.89),
@@ -112,26 +117,26 @@ class PanopticDeepLab(nn.Module):
 
         self.instance_center_regress_y = nn.Sequential(
             nn.Conv2d(
-                128,
-                32,
+                panoptic_out,
+                inter_channels,
                 kernel_size=5,
                 stride=1,
                 padding=1,
                 # bias=False,  # xception-old, - 21
-                groups=2,  # dsc 2, xception-old
-                # groups=32,  # -21, dsc 1
+                # groups=inter_channels,  # dsc 2, xception-old
+                groups=inter_channels,  # -21, dsc 1
             ),
-            BatchNorm(32),
+            BatchNorm(inter_channels),
             nn.ReLU(),
-            nn.Dropout(0.75),
+            nn.Dropout(0.5),
             nn.Conv2d(
-                32,
+                inter_channels,
                 1,
                 kernel_size=1,
                 stride=1,
                 padding=1,
                 # bias=False,  # xception-old, - 21
-                groups=2,  # dsc 2
+                # groups=2,  # dsc 2
             ),
             # nn.Tanh(),
             # nn.LeakyReLU(negative_slope=0.89),
@@ -168,8 +173,9 @@ class PanopticDeepLab(nn.Module):
 
         x_semantic = self.semantic_predict(x_semantic)
         x_center_predict = self.instance_center_predict(x_panoptic)
-        x_center_regress = self.instance_center_regress(x_panoptic)
-        return x_semantic, x_center_predict, x_center_regress
+        center_regress_x = self.instance_center_regress_x(x_panoptic)
+        center_regress_y = self.instance_center_regress_y(x_panoptic)
+        return x_semantic, x_center_predict, center_regress_x, center_regress_y
 
     # TODO(toluwajosh): resolve the conflict
     def freeze_bn(self):
