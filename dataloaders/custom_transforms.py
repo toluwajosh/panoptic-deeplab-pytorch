@@ -175,8 +175,8 @@ class RandomScaleCrop(object):
         mask = mask.resize((ow, oh), Image.NEAREST)
         if panoptic:
             center = center.resize((ow, oh), Image.NEAREST)
-            x_reg = x_reg.resize((ow, oh), Image.NEAREST)
-            y_reg = y_reg.resize((ow, oh), Image.NEAREST)
+            x_reg = x_reg.resize((ow, oh), Image.LINEAR)
+            y_reg = y_reg.resize((ow, oh), Image.LINEAR)
 
         # pad crop
         if short_size < self.crop_size:
