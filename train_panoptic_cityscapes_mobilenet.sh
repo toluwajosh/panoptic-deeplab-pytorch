@@ -5,7 +5,7 @@ python train_panoptic.py \
 --lr-step 30 \
 --epochs 200 \
 --batch-size 2 \
---checkname panoptic-deeplab-mobilenet-all-splitted \
+--checkname panoptic-deeplab-mobilenet-noaug \
 --eval-interval 1 \
 --task panoptic \
 --dataset cityscapes

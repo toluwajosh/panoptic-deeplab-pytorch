@@ -89,73 +89,161 @@ class Tester(object):
                 sample["x_reg"],
                 sample["y_reg"],
             )
+
+            # assume groundtruth is prediction
             if self.args.cuda:
-                image, label = image.cuda(), label.cuda()
-                input_image = F.interpolate(
-                    image,
-                    size=[513, 513],
-                    mode="bilinear",
-                    align_corners=True,
+                image, label, center, x_reg, y_reg = (
+                    image.cuda(),
+                    label.cuda(),
+                    center.cuda(),
+                    x_reg.cuda(),
+                    y_reg.cuda(),
                 )
-            with torch.no_grad():
-                try:
-                    output = self.model(input_image)
-                except ValueError as identifier:
-                    # there was an error with wrong input size
-                    print("Error: ", identifier)
-                    continue
-            prediction = F.interpolate(
-                output[0],
-                size=image.size()[2:],
-                mode="bilinear",
-                align_corners=True,
-            )
-            prediction = prediction.data.cpu().numpy()
-            # label = label.cpu().numpy()
-            prediction = np.argmax(prediction, axis=1)
-            centers = output[1]
-            plt.imshow(centers[0][0].data.cpu().numpy())
 
-            centers = F.interpolate(
-                centers,
-                size=image.size()[2:],
-                mode="bilinear",
-                align_corners=True,
+            # 1.0 filter out stuff categories
+            # 1.1 Using categories list
+            # things_category = [5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 30]
+            # 1.2 using mask from y regression
+            mask_threshold = 1
+            label = torch.where(
+                y_reg * y_reg < mask_threshold, torch.zeros_like(label), label
             )
 
+            mask = torch.where(
+                y_reg * y_reg < mask_threshold,
+                torch.zeros_like(label),
+                torch.ones_like(label),
+            )
+
+            # 2.0 get center points
             # max pool according to paper
-            centers_new = F.max_pool2d(centers, 7, stride=1, padding=3)
-
-            # use thresholding=0.1 (of 255)
-            centers = torch.where(
-                centers == centers_new, centers, torch.zeros_like(centers)
+            centers_max = F.max_pool2d(center, 7, stride=1, padding=3)
+            centers_select = torch.where(
+                center == centers_max, center, torch.zeros_like(center)
             )
-            # choose top k points, need to sort, then choose the top
-            # centers = torch.where(centers>10, torch.ones_like(centers), torch.zeros_like(centers))
-            centers_reg = F.interpolate(
-                output[2],
-                size=image.size()[2:],
-                mode="bilinear",
-                align_corners=True,
+            # 2.1 choose top k points, need to sort, then choose the top
+            # use thresholding=10 (of 255)
+            centers_select = torch.where(
+                centers_select > 10,
+                torch.ones_like(centers_select),
+                torch.zeros_like(centers_select),
             )
 
-            # print(output[2].shape)
+            # 3.0 do regressions
+            # first make tensors that represent where the centers are for each point
+            _, h, w = x_reg.shape
+            gridy, gridx = torch.meshgrid(torch.arange(h), torch.arange(w))
+            gridx = gridx.cuda()  # + x_reg
+            gridy = gridy.cuda()  # + y_reg
+
+            center_points = centers_select.nonzero()
+            reg_to_y = center_points[:, 1:2].unsqueeze(-1) * torch.ones_like(
+                y_reg
+            ) + gridy
+            reg_to_x = center_points[:, 2:3].unsqueeze(-1) * torch.ones_like(
+                y_reg
+            ) + gridx
+            # find the difference between the centers and each pixel
+            x_diff = (reg_to_x - x_reg) ** 2
+            y_diff = (reg_to_y - y_reg) ** 2
+            # find the shortes distance between the center points and each pixel
+            distance = torch.sqrt(x_diff + y_diff)
+
+            instance_ids = (torch.argmin(distance, 0) + 1).float()
+
+            instance_ids = torch.where(
+                instance_ids == 0,
+                torch.zeros_like(label),
+                instance_ids,
+            )
+            # print(instance_ids.shape)
             # exit(0)
-            points = (centers > 0.1 * 255).nonzero()
-            print("points.shape: ", points.shape)
-            print("centers_reg.shape: ", centers_reg.shape)
-            points_only = points[:, 2:].unsqueeze(-1).unsqueeze(
-                -1
-            ) * torch.ones_like(centers_reg)
-            print("points_only.shape: ", points_only.shape)
+            show_image = instance_ids[0].cpu().numpy()
 
-            # x_reg = centers_reg[0][0]
-            # y_reg = centers_reg[0][1]
-            # print("x_reg.shape: ", x_reg.shape)
-            # print("prediction.shape: ", prediction.shape)
+            # center_points_tensor = (
+            #     center_points[:, 1:].unsqueeze(-1).unsqueeze(-1)
+            # )  # * torch.ones_like(centers_reg)
+            # print(center_points_tensor.shape)
+            # exit(0)
 
-            diff_sqr = (points_only - centers_reg) ** 2
-            mag = torch.sqrt(diff_sqr[:, 0, :, :] + diff_sqr[:, 1, :, :])
+            # diff_sqr = (center_points_tensor - centers_reg) ** 2
+            # mag = torch.sqrt(diff_sqr[:, 0, :, :] + diff_sqr[:, 1, :, :])
+            # print("mag: ", mag.shape)
+            # final = torch.argmin(mag, 0)
+            # print(final)
+            # show = (final / torch.max(final)).data.cpu().numpy()
+            # plt.imshow(final.data.cpu().numpy())
+            # plt.show()
+            
+
+            # # predict from model
+            # input_image = F.interpolate(
+            #     image,
+            #     size=[513, 513],
+            #     mode="bilinear",
+            #     align_corners=True,
+            # )
+            # with torch.no_grad():
+            #     try:
+            #         output = self.model(input_image)
+            #     except ValueError as identifier:
+            #         # there was an error with wrong input size
+            #         print("Error: ", identifier)
+            #         continue
+
+            # # label_pred, center_pred, x_reg_pred, y_reg_pred = output
+
+            # prediction = F.interpolate(
+            #     label_pred,
+            #     size=image.size()[2:],
+            #     mode="bilinear",
+            #     align_corners=True,
+            # )
+            # prediction = prediction.data.cpu().numpy()
+            # # label = label.cpu().numpy()
+            # prediction = np.argmax(prediction, axis=1)
+            # centers = output[1]
+
+            # centers = F.interpolate(
+            #     centers,
+            #     size=image.size()[2:],
+            #     mode="bilinear",
+            #     align_corners=True,
+            # )
+
+            # # max pool according to paper
+            # centers_new = F.max_pool2d(centers, 7, stride=1, padding=3)
+
+            # # use thresholding=0.1 (of 255)
+            # centers = torch.where(
+            #     centers == centers_new, centers, torch.zeros_like(centers)
+            # )
+            # # choose top k points, need to sort, then choose the top
+            # # centers = torch.where(centers>10, torch.ones_like(centers), torch.zeros_like(centers))
+            # centers_reg = F.interpolate(
+            #     output[2],
+            #     size=image.size()[2:],
+            #     mode="bilinear",
+            #     align_corners=True,
+            # )
+
+            # # print(output[2].shape)
+            # # exit(0)
+            # points = (centers > 0.1 * 255).nonzero()
+            # print("points.shape: ", points.shape)
+            # print("centers_reg.shape: ", centers_reg.shape)
+            # points_only = points[:, 2:].unsqueeze(-1).unsqueeze(
+            #     -1
+            # ) * torch.ones_like(centers_reg)
+            # print("points_only.shape: ", points_only.shape)
+
+            # # x_reg = centers_reg[0][0]
+            # # y_reg = centers_reg[0][1]
+            # # print("x_reg.shape: ", x_reg.shape)
+            # # print("prediction.shape: ", prediction.shape)
+
+            # diff_sqr = (points_only - centers_reg) ** 2
+            # mag = torch.sqrt(diff_sqr[:, 0, :, :] + diff_sqr[:, 1, :, :])
             # print("mag: ", mag.shape)
             # final = torch.argmin(mag, 0)
             # print(final)
@@ -177,7 +265,7 @@ class Tester(object):
             # out_image = centers_reg[0][0].data.cpu().numpy()
 
             # out y_reg prediction
-            out_image = centers_reg[0][1].data.cpu().numpy()
+            # out_image = centers_reg[0][0].data.cpu().numpy()
 
             # # out x_reg gt
             # out_image = x_reg[0].data.cpu().numpy()
@@ -185,18 +273,19 @@ class Tester(object):
             # # out y_reg gt
             # out_image = y_reg[0].data.cpu().numpy()
 
-            img_tmp = np.transpose(image[0].cpu().numpy(), axes=[1, 2, 0])
-            img_tmp *= (0.229, 0.224, 0.225)
-            img_tmp += (0.485, 0.456, 0.406)
-            img_tmp *= 255.0
-            img_tmp = img_tmp.astype(np.uint8)
+            # show image
+            image = image[0].permute(1, 2, 0).cpu().numpy()
+            image *= (0.229, 0.224, 0.225)
+            image += (0.485, 0.456, 0.406)
+            image *= 255.0
+            image = image.astype(np.uint8)
 
             plt.figure()
             plt.subplot(121)
-            plt.imshow(img_tmp)
+            plt.imshow(image)
             # this should be final image
             plt.subplot(122)
-            plt.imshow(out_image)
+            plt.imshow(show_image)
             plt.show()
 
     def evaluate(self, epoch):

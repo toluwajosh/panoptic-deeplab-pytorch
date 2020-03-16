@@ -299,7 +299,7 @@ class CityscapesPanoptic(data.Dataset):
         self.class_map = dict(zip(self.valid_classes, range(self.NUM_CLASSES)))
 
         # hardcoded things category
-        # self.things_category = [5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18]
+        # self.things_category = [5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 30]
         self.things_category = [
             "pole",
             "traffic light",
@@ -389,8 +389,8 @@ class CityscapesPanoptic(data.Dataset):
                 print(gaussian_patch.shape)
                 raise
 
-            x_patch = np.tile(np.arange(-c_x, c_x), (h, 1))
-            y_patch = np.tile(np.arange(-c_y, c_y), (w, 1)).T
+            x_patch = np.tile(np.arange(c_x, -c_x, -1), (h, 1))
+            y_patch = np.tile(np.arange(c_y, -c_y, -1), (w, 1)).T
             x_reg[y0:y1, x0:x1] = np.where(
                 mask == 1, x_patch, x_reg[y0:y1, x0:x1]
             )
@@ -464,7 +464,7 @@ class CityscapesPanoptic(data.Dataset):
     def transform_tr(self, sample):
         composed_transforms = transforms.Compose(
             [
-                tr.RandomHorizontalFlip(),
+                # tr.RandomHorizontalFlip(),
                 tr.RandomScaleCrop(
                     base_size=self.args.base_size,
                     crop_size=self.args.crop_size,
@@ -565,7 +565,7 @@ if __name__ == "__main__":
             plt.subplot(221)
             plt.imshow(segmap)
             plt.subplot(222)
-            plt.imshow(center*255)
+            plt.imshow(center * 255)
             plt.subplot(223)
             plt.imshow(x_reg)
             plt.subplot(224)

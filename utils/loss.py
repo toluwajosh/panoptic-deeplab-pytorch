@@ -146,12 +146,12 @@ class PanopticLosses(object):
         # print(torch.max(y_reg))
         # print()
 
-        # print(torch.min(center_predict).data)
-        # print(torch.max(center_predict).data)
-        # print(torch.min(x_reg_pred).data)
-        # print(torch.max(x_reg_pred).data)
-        # print(torch.min(y_reg_pred).data)
-        # print(torch.max(y_reg_pred).data)
+        print(torch.min(center_predict).data)
+        print(torch.max(center_predict).data)
+        print(torch.min(x_reg_pred).data)
+        print(torch.max(x_reg_pred).data)
+        print(torch.min(y_reg_pred).data)
+        print(torch.max(y_reg_pred).data)
         # exit(0)
 
         # calculate losses
