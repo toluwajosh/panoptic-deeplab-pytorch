@@ -90,27 +90,34 @@ class Tester(object):
                 sample["y_reg"],
             )
 
-            # assume groundtruth is prediction
+            # assume groundtruth is prediction (remove multiplier in final)
             if self.args.cuda:
                 image, label, center, x_reg, y_reg = (
                     image.cuda(),
                     label.cuda(),
                     center.cuda(),
-                    x_reg.cuda(),
-                    y_reg.cuda(),
+                    x_reg.cuda() / 3.0,
+                    y_reg.cuda() / 2.0,
                 )
+            # preprocess ~ return to original size.
+            # works only for test_loader
+            # prediction = F.interpolate(
+            #     label_pred,
+            #     size=image.size()[2:],
+            #     mode="bilinear",
+            #     align_corners=True,
+            # )
 
             # 1.0 filter out stuff categories
             # 1.1 Using categories list
             # things_category = [5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 30]
             # 1.2 using mask from y regression
-            mask_threshold = 1
-            label = torch.where(
-                y_reg * y_reg < mask_threshold, torch.zeros_like(label), label
+            instance_label = torch.where(
+                y_reg * y_reg == 0, torch.zeros_like(label), label
             )
 
             mask = torch.where(
-                y_reg * y_reg < mask_threshold,
+                y_reg * y_reg == 0,
                 torch.zeros_like(label),
                 torch.ones_like(label),
             )
@@ -122,10 +129,10 @@ class Tester(object):
                 center == centers_max, center, torch.zeros_like(center)
             )
             # 2.1 choose top k points, need to sort, then choose the top
-            # use thresholding=10 (of 255)
+            # use thresholding=2.5 (of 255)
             centers_select = torch.where(
-                centers_select > 10,
-                torch.ones_like(centers_select),
+                centers_select > 250,
+                torch.ones_like(centers_select)*255,
                 torch.zeros_like(centers_select),
             )
 
@@ -133,32 +140,58 @@ class Tester(object):
             # first make tensors that represent where the centers are for each point
             _, h, w = x_reg.shape
             gridy, gridx = torch.meshgrid(torch.arange(h), torch.arange(w))
-            gridx = gridx.cuda()  # + x_reg
-            gridy = gridy.cuda()  # + y_reg
+            gridx = gridx.cuda().unsqueeze(0)  # + x_reg
+            gridy = gridy.cuda().unsqueeze(0)  # + y_reg
 
+            offsetted_pixloc_x = gridx + x_reg
+            offsetted_pixloc_y = gridy + y_reg
+
+            # get indices of center points TODO: ensure correct axis
             center_points = centers_select.nonzero()
-            reg_to_y = center_points[:, 1:2].unsqueeze(-1) * torch.ones_like(
-                y_reg
-            ) + gridy
-            reg_to_x = center_points[:, 2:3].unsqueeze(-1) * torch.ones_like(
-                y_reg
-            ) + gridx
-            # find the difference between the centers and each pixel
-            x_diff = (reg_to_x - x_reg) ** 2
-            y_diff = (reg_to_y - y_reg) ** 2
-            # find the shortes distance between the center points and each pixel
-            distance = torch.sqrt(x_diff + y_diff)
+            if center_points.shape[0] < 1:
+                continue
+            center_points_x = center_points[:, 2:3].unsqueeze(
+                -1
+            ) * torch.ones_like(x_reg)
+            center_points_y = center_points[:, 1:2].unsqueeze(
+                -1
+            ) * torch.ones_like(x_reg)
 
-            instance_ids = (torch.argmin(distance, 0) + 1).float()
+            distance_x = (center_points_x - offsetted_pixloc_x) ** 2
+            distance_y = (center_points_y - offsetted_pixloc_y) ** 2
 
+            distance_xy = torch.sqrt(distance_x + distance_y)
+
+            instance_ids = (torch.argmin(distance_xy, 0) + 1).float()
             instance_ids = torch.where(
-                instance_ids == 0,
-                torch.zeros_like(label),
-                instance_ids,
+                mask[0] == 0, torch.zeros_like(instance_ids), instance_ids,
             )
-            # print(instance_ids.shape)
+
+            # # broadcast to image size and add grid values
+            # reg_to_x = gridx + (
+            #     center_points[:, 2:3].unsqueeze(-1) * torch.ones_like(x_reg)
+            # )
+            # reg_to_y = gridy + (
+            #     center_points[:, 1:2].unsqueeze(-1) * torch.ones_like(y_reg)
+            # )
+
+            # print(reg_to_x.shape)
+            # print(reg_to_y.shape)
             # exit(0)
-            show_image = instance_ids[0].cpu().numpy()
+            # # find the difference between the centers and each pixel
+            # x_diff = (reg_to_x - x_reg) ** 2
+            # y_diff = (reg_to_y - y_reg) ** 2
+            # # find the shortes distance between the center points and each pixel
+            # distance = torch.sqrt(x_diff + y_diff)
+
+            # instance_ids = (torch.argmin(distance, 0) + 1).float()
+
+            # instance_ids = torch.where(
+            #     instance_ids == 0, torch.zeros_like(label), instance_ids,
+            # )
+            # # print(instance_ids.shape)
+            # # exit(0)
+            show_image = instance_ids.cpu().numpy()
 
             # center_points_tensor = (
             #     center_points[:, 1:].unsqueeze(-1).unsqueeze(-1)
@@ -174,7 +207,6 @@ class Tester(object):
             # show = (final / torch.max(final)).data.cpu().numpy()
             # plt.imshow(final.data.cpu().numpy())
             # plt.show()
-            
 
             # # predict from model
             # input_image = F.interpolate(
@@ -257,11 +289,15 @@ class Tester(object):
             # exit(0)
 
             # display outputs
-            # out_image = decode_seg_map_sequence(
-            #     prediction, dataset=self.args.dataset,
-            # )[0].permute(1, 2, 0)
+            print(label.shape)
+            semantic_show = decode_seg_map_sequence(
+                label.cpu().numpy(), dataset=self.args.dataset,
+            )[0].permute(1, 2, 0)
 
-            # # out x_reg prediction
+            # out centers
+            # centers_show = centers_select[0].data.cpu().numpy()
+            centers_show = center[0].data.cpu().numpy()
+            # out x_reg prediction
             # out_image = centers_reg[0][0].data.cpu().numpy()
 
             # out y_reg prediction
@@ -281,10 +317,13 @@ class Tester(object):
             image = image.astype(np.uint8)
 
             plt.figure()
-            plt.subplot(121)
+            plt.subplot(221)
             plt.imshow(image)
-            # this should be final image
-            plt.subplot(122)
+            plt.subplot(222)
+            plt.imshow(semantic_show)
+            plt.subplot(223)
+            plt.imshow(centers_show)
+            plt.subplot(224)
             plt.imshow(show_image)
             plt.show()
 

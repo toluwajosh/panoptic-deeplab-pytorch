@@ -2,15 +2,15 @@ python train_panoptic.py \
 --backbone mobilenet_3stage \
 --lr 0.01 \
 --lr-scheduler step \
---lr-step 30 \
+--lr-step 50 \
 --epochs 200 \
 --batch-size 2 \
 --checkname panoptic-deeplab-mobilenet-noaug \
 --eval-interval 1 \
 --task panoptic \
+--resume /home/tjosh/codes/pytorch-deeplab-xception/run/cityscapes/panoptic-deeplab-mobilenet-noaug/model_best.pth.tar \
 --dataset cityscapes
 
-# --resume /home/tjosh/codes/pytorch-deeplab-xception/run/cityscapes/panoptic-deeplab-mobilenet-assorted/model_best.pth.tar \
 
 # --create-params
 # --workers 4 \

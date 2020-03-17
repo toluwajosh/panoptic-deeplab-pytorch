@@ -146,12 +146,12 @@ class PanopticLosses(object):
         # print(torch.max(y_reg))
         # print()
 
-        print(torch.min(center_predict).data)
-        print(torch.max(center_predict).data)
-        print(torch.min(x_reg_pred).data)
-        print(torch.max(x_reg_pred).data)
-        print(torch.min(y_reg_pred).data)
-        print(torch.max(y_reg_pred).data)
+        # print(torch.min(center_predict).data)
+        # print(torch.max(center_predict).data)
+        # print(torch.min(x_reg_pred).data)
+        # print(torch.max(x_reg_pred).data)
+        # print(torch.min(y_reg_pred).data)
+        # print(torch.max(y_reg_pred).data)
         # exit(0)
 
         # calculate losses
@@ -161,10 +161,10 @@ class PanopticLosses(object):
         x_reg_loss = mse_loss(x_reg_pred, x_reg.unsqueeze(1))
         y_reg_loss = mse_loss(y_reg_pred, y_reg.unsqueeze(1))
         return (
-            semantic_loss,
-            center_loss * 0.1,
+            semantic_loss * 10.0,
+            center_loss * 0.05,
             x_reg_loss * 0.01,
-            y_reg_loss * 0.1,
+            y_reg_loss * 0.01,
         )
 
 

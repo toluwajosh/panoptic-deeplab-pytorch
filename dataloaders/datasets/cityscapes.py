@@ -369,13 +369,9 @@ class CityscapesPanoptic(data.Dataset):
             cv2.fillPoly(mask, pts=[polygon], color=(1, 1, 1))
 
             try:
-                pass
                 centers_image[y0:y1, x0:x1] = np.maximum(
                     centers_image[y0:y1, x0:x1], gaussian_patch
                 )
-                # centers_image[y0:y1, x0:x1] = np.where(
-                # mask == 1, gaussian_patch, centers_image[y0:y1, x0:x1]
-                # )
             except ValueError as identifier:
                 print("\n")
                 print(identifier)
@@ -390,7 +386,9 @@ class CityscapesPanoptic(data.Dataset):
                 raise
 
             x_patch = np.tile(np.arange(c_x, -c_x, -1), (h, 1))
+            x_patch = np.where(x_patch==0, 1, x_patch)
             y_patch = np.tile(np.arange(c_y, -c_y, -1), (w, 1)).T
+            y_patch = np.where(y_patch==0, 1, y_patch)
             x_reg[y0:y1, x0:x1] = np.where(
                 mask == 1, x_patch, x_reg[y0:y1, x0:x1]
             )
@@ -520,7 +518,7 @@ if __name__ == "__main__":
     args.base_size = 513
     args.crop_size = 513
 
-    cityscapes_train = CityscapesPanoptic(args, split="train")
+    cityscapes_train = CityscapesPanoptic(args, split="val")
 
     dataloader = DataLoader(
         cityscapes_train, batch_size=1, shuffle=True, num_workers=2
