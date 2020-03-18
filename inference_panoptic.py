@@ -144,9 +144,11 @@ class Tester(object):
             "unlabelled",  # added
         ]
 
+        # in label IDs
+        self.things_category = [24, 25, 26, 27, 28, 31, 32, 33]
+
     def test_saving(self, epoch):
         self.model.eval()
-        # self.evaluator.reset()
         tbar = tqdm(self.test_loader, desc="\r")
         test_loss = 0.0
         for i, (sample, filepath) in enumerate(tbar):
@@ -161,12 +163,11 @@ class Tester(object):
             )
             filename = new_filepath.split("/")[-1]
             print()
-            print(filename)
             directorypath = new_filepath.split("/")[:-1]
             directorypath = "/".join(directorypath)
             if not os.path.exists(directorypath):
-                # os.makedirs(directorypath)
-                print(directorypath)
+                os.makedirs(directorypath)
+                # print("directorypath: ", directorypath)
 
             input_image = image.clone()
             with torch.no_grad():
@@ -187,9 +188,10 @@ class Tester(object):
                     semantic_labels == trainId
                 ] = self.valid_classes[trainId]
             # 2. multiply by 1000
-            # 3. get IDs and add to semantic_labels
-            print(semantic_labels.shape)
+            # print("semantic_labels.shape: ", semantic_labels.shape)
+            semantic_labels_maxed = semantic_labels * 1000
 
+            # 3. get the instances IDs
             # print(semantic_pred.shape)
             # print(center_pred.shape)
             # print(x_offset_pred.shape)
@@ -207,6 +209,13 @@ class Tester(object):
             center_pred = center_pred[0]
             x_offset_pred = x_offset_pred[0]
             y_offset_pred = y_offset_pred[0]
+            instances = self.get_instances(
+                semantic_labels, center_pred, x_offset_pred, y_offset_pred
+            )
+
+            # 4. and add to semantic_labels
+            final_instance_image = semantic_labels_maxed.cuda() + instances
+            # print("final_instance_image.shape: ", final_instance_image.shape)
 
             # frankfurt_000000_000294_gtFine_labelIds.png ->
             # with frankfurt_000000_000294_gtFine_instanceIds.png
@@ -215,16 +224,79 @@ class Tester(object):
                 + "/"
                 + filename.replace("labelIds", "instanceIds")
             )
-            print(save_filepath)
-            instance_image = np.array(Image.open(filepath[0]))
-            print(np.max(instance_image))
-            print(np.min(instance_image))
-            plt.imshow(instance_image)
-            plt.show()
+            # print(save_filepath)
+            # exit(0)
+            # instance_image = np.array(Image.open(filepath[0]))
+            # plt.imshow(instance_image)
+            # plt.show()
 
             # save instance image (finally!)
-            instance_image = Image.fromarray(instance_image)
+            print(save_filepath)
+            final_instance_image = np.uint8(final_instance_image[0].cpu().numpy())
+            instance_image = Image.fromarray(final_instance_image)
             instance_image.save(save_filepath)
+
+    def get_instances(
+        self, semantic_labels, center, x_offset, y_offset, center_threshold=250
+    ):
+        mask = torch.zeros_like(semantic_labels)
+        for num in self.things_category:
+            mask = torch.where(semantic_labels == num, semantic_labels, mask)
+
+        # remove pixels in center that belong to stuffs
+        center = center * mask.cuda()
+
+        # 2.0 get center points
+        # max pool according to paper
+        centers_max = F.max_pool2d(center, 7, stride=1, padding=3)
+        centers_select = torch.where(
+            center == centers_max, center, torch.zeros_like(center)
+        )
+
+        # 2.1 choose top k points, need to sort, then choose the top
+        centers_select = torch.where(
+            centers_select > center_threshold,
+            torch.ones_like(centers_select) * 255,
+            torch.zeros_like(centers_select),
+        )
+
+        # 3.0 do regressions
+        # first make tensors that represent where the centers are for each point
+        _, h, w = x_offset.shape
+        gridy, gridx = torch.meshgrid(torch.arange(h), torch.arange(w))
+        gridx = gridx.cuda().unsqueeze(0)
+        gridy = gridy.cuda().unsqueeze(0)
+
+        offsetted_pixloc_x = gridx + x_offset
+        offsetted_pixloc_y = gridy + y_offset
+
+        # get indices of center points TODO: ensure correct axis
+        center_points = centers_select.nonzero()
+        if center_points.shape[0] < 1:
+            return torch.zeros_like(semantic_labels[0]).cuda()
+        center_points_x = center_points[:, 2:3].unsqueeze(
+            -1
+        ) * torch.ones_like(x_offset)
+        center_points_y = center_points[:, 1:2].unsqueeze(
+            -1
+        ) * torch.ones_like(x_offset)
+
+        distance_x = (center_points_x - offsetted_pixloc_x) ** 2
+        distance_y = (center_points_y - offsetted_pixloc_y) ** 2
+
+        distance_xy = torch.sqrt(distance_x + distance_y)
+
+        instances = (torch.argmin(distance_xy, 0) + 1).float()
+        instances = torch.where(
+            mask.cuda() == 0, torch.zeros_like(instances), instances,
+        )
+
+        # for debug
+        # show_image = centers_select[0].cpu().numpy()
+        # plt.imshow(show_image)
+        # plt.show()
+        # exit(0)
+        return instances
 
     def test_grouping(self, epoch):
         self.model.eval()
@@ -265,9 +337,9 @@ class Tester(object):
 
             # 1.0 filter out stuff categories
             # 1.1 Using categories list
-            things_category = [5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 30]
+            # self.things_category = [5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 30]
             mask = torch.zeros_like(label)
-            for num in things_category:
+            for num in self.things_category:
                 mask = torch.where(label == num, label, mask)
 
             # 1.2 using mask from y regression
