@@ -302,4 +302,19 @@ class FixedResize(object):
         img = img.resize(self.size, Image.BILINEAR)
         mask = mask.resize(self.size, Image.NEAREST)
 
-        return {"image": img, "label": mask}
+        if "center" in sample.keys():
+            center = sample["center"]
+            x_reg = sample["x_reg"]
+            y_reg = sample["y_reg"]
+            center = center.resize(self.size, Image.NEAREST)
+            x_reg = x_reg.resize(self.size, Image.NEAREST)
+            y_reg = y_reg.resize(self.size, Image.NEAREST)
+            return {
+                "image": img,
+                "label": mask,
+                "center": center,
+                "x_reg": x_reg,
+                "y_reg": y_reg,
+            }
+        else:
+            return {"image": img, "label": mask}

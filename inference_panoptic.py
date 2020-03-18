@@ -3,6 +3,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+import PIL.Image as Image
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
@@ -21,6 +22,8 @@ from utils.summaries import TensorboardSummary
 
 
 class Tester(object):
+    NUM_CLASSES = 21
+
     def __init__(self, args):
         self.args = args
 
@@ -76,6 +79,153 @@ class Tester(object):
             )
         )
 
+        self.void_classes = [
+            # 0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            9,
+            10,
+            14,
+            15,
+            16,
+            18,
+            29,
+            # 30,
+            -1,
+        ]
+        self.valid_classes = [
+            7,
+            8,
+            11,
+            12,
+            13,
+            17,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            31,
+            32,
+            33,
+            30,  # added
+            0,  # added
+        ]
+        self.class_names = [
+            "road",
+            "sidewalk",
+            "building",
+            "wall",
+            "fence",
+            "pole",
+            "traffic_light",
+            "traffic_sign",
+            "vegetation",
+            "terrain",
+            "sky",
+            "person",
+            "rider",
+            "car",
+            "truck",
+            "bus",
+            "train",
+            "motorcycle",
+            "bicycle",
+            "trailer",  # added
+            "unlabelled",  # added
+        ]
+
+    def test_saving(self, epoch):
+        self.model.eval()
+        # self.evaluator.reset()
+        tbar = tqdm(self.test_loader, desc="\r")
+        test_loss = 0.0
+        for i, (sample, filepath) in enumerate(tbar):
+            image = sample["image"]
+
+            if self.args.cuda:
+                image = image.cuda()
+
+            # print(filepath)
+            new_filepath = filepath[0].replace(
+                "gtFine_trainvaltest", "gtFine_test_result"
+            )
+            filename = new_filepath.split("/")[-1]
+            print()
+            print(filename)
+            directorypath = new_filepath.split("/")[:-1]
+            directorypath = "/".join(directorypath)
+            if not os.path.exists(directorypath):
+                # os.makedirs(directorypath)
+                print(directorypath)
+
+            input_image = image.clone()
+            with torch.no_grad():
+                try:
+                    output = self.model(input_image)
+                except ValueError as identifier:
+                    # there was an error with wrong input size
+                    print("Error: ", identifier)
+                    continue
+
+            semantic_pred, center_pred, x_offset_pred, y_offset_pred = output
+
+            # ############## to create the InstanceIDs
+            # 1. convert trainIDs to labelIDs
+            semantic_labels = np.argmax(semantic_pred.cpu(), axis=1)
+            for trainId in range(self.NUM_CLASSES):
+                semantic_labels[
+                    semantic_labels == trainId
+                ] = self.valid_classes[trainId]
+            # 2. multiply by 1000
+            # 3. get IDs and add to semantic_labels
+            print(semantic_labels.shape)
+
+            # print(semantic_pred.shape)
+            # print(center_pred.shape)
+            # print(x_offset_pred.shape)
+            # print(y_offset_pred.shape)
+            # shapes:
+            # torch.Size([1, 21, 513, 513])
+            # torch.Size([1, 1, 513, 513])
+            # torch.Size([1, 1, 513, 513])
+            # torch.Size([1, 1, 513, 513])
+            # expected shapes
+            # torch.Size([1, 513, 513])
+            # torch.Size([1, 513, 513])
+            # torch.Size([1, 513, 513])
+            # torch.Size([1, 513, 513])
+            center_pred = center_pred[0]
+            x_offset_pred = x_offset_pred[0]
+            y_offset_pred = y_offset_pred[0]
+
+            # frankfurt_000000_000294_gtFine_labelIds.png ->
+            # with frankfurt_000000_000294_gtFine_instanceIds.png
+            save_filepath = (
+                directorypath
+                + "/"
+                + filename.replace("labelIds", "instanceIds")
+            )
+            print(save_filepath)
+            instance_image = np.array(Image.open(filepath[0]))
+            print(np.max(instance_image))
+            print(np.min(instance_image))
+            plt.imshow(instance_image)
+            plt.show()
+
+            # save instance image (finally!)
+            instance_image = Image.fromarray(instance_image)
+            instance_image.save(save_filepath)
+
     def test_grouping(self, epoch):
         self.model.eval()
         # self.evaluator.reset()
@@ -96,9 +246,14 @@ class Tester(object):
                     image.cuda(),
                     label.cuda(),
                     center.cuda(),
-                    x_reg.cuda() / 3.0,
+                    x_reg.cuda() / 2.0,
                     y_reg.cuda() / 2.0,
                 )
+            # print(label.shape)
+            # print(center.shape)
+            # print(x_reg.shape)
+            # print(y_reg.shape)
+            # exit(0)
             # preprocess ~ return to original size.
             # works only for test_loader
             # prediction = F.interpolate(
@@ -110,17 +265,21 @@ class Tester(object):
 
             # 1.0 filter out stuff categories
             # 1.1 Using categories list
-            # things_category = [5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 30]
-            # 1.2 using mask from y regression
-            instance_label = torch.where(
-                y_reg * y_reg == 0, torch.zeros_like(label), label
-            )
+            things_category = [5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 30]
+            mask = torch.zeros_like(label)
+            for num in things_category:
+                mask = torch.where(label == num, label, mask)
 
-            mask = torch.where(
-                y_reg * y_reg == 0,
-                torch.zeros_like(label),
-                torch.ones_like(label),
-            )
+            # 1.2 using mask from y regression
+            # mask = torch.where(
+            #     y_reg * y_reg == 0,
+            #     torch.zeros_like(label),
+            #     torch.ones_like(label),
+            # )
+
+            # instance_label = torch.where(
+            #     y_reg * y_reg == 0, torch.zeros_like(label), label
+            # )
 
             # 2.0 get center points
             # max pool according to paper
@@ -132,7 +291,7 @@ class Tester(object):
             # use thresholding=2.5 (of 255)
             centers_select = torch.where(
                 centers_select > 250,
-                torch.ones_like(centers_select)*255,
+                torch.ones_like(centers_select) * 255,
                 torch.zeros_like(centers_select),
             )
 
@@ -162,134 +321,16 @@ class Tester(object):
 
             distance_xy = torch.sqrt(distance_x + distance_y)
 
-            instance_ids = (torch.argmin(distance_xy, 0) + 1).float()
-            instance_ids = torch.where(
-                mask[0] == 0, torch.zeros_like(instance_ids), instance_ids,
+            group_ids = (torch.argmin(distance_xy, 0) + 1).float()
+            group_ids = torch.where(
+                mask[0] == 0, torch.zeros_like(group_ids), group_ids,
             )
 
-            # # broadcast to image size and add grid values
-            # reg_to_x = gridx + (
-            #     center_points[:, 2:3].unsqueeze(-1) * torch.ones_like(x_reg)
-            # )
-            # reg_to_y = gridy + (
-            #     center_points[:, 1:2].unsqueeze(-1) * torch.ones_like(y_reg)
-            # )
+            show_image = group_ids.cpu().numpy()
 
-            # print(reg_to_x.shape)
-            # print(reg_to_y.shape)
-            # exit(0)
-            # # find the difference between the centers and each pixel
-            # x_diff = (reg_to_x - x_reg) ** 2
-            # y_diff = (reg_to_y - y_reg) ** 2
-            # # find the shortes distance between the center points and each pixel
-            # distance = torch.sqrt(x_diff + y_diff)
-
-            # instance_ids = (torch.argmin(distance, 0) + 1).float()
-
-            # instance_ids = torch.where(
-            #     instance_ids == 0, torch.zeros_like(label), instance_ids,
-            # )
-            # # print(instance_ids.shape)
-            # # exit(0)
-            show_image = instance_ids.cpu().numpy()
-
-            # center_points_tensor = (
-            #     center_points[:, 1:].unsqueeze(-1).unsqueeze(-1)
-            # )  # * torch.ones_like(centers_reg)
-            # print(center_points_tensor.shape)
-            # exit(0)
-
-            # diff_sqr = (center_points_tensor - centers_reg) ** 2
-            # mag = torch.sqrt(diff_sqr[:, 0, :, :] + diff_sqr[:, 1, :, :])
-            # print("mag: ", mag.shape)
-            # final = torch.argmin(mag, 0)
-            # print(final)
-            # show = (final / torch.max(final)).data.cpu().numpy()
-            # plt.imshow(final.data.cpu().numpy())
-            # plt.show()
-
-            # # predict from model
-            # input_image = F.interpolate(
-            #     image,
-            #     size=[513, 513],
-            #     mode="bilinear",
-            #     align_corners=True,
-            # )
-            # with torch.no_grad():
-            #     try:
-            #         output = self.model(input_image)
-            #     except ValueError as identifier:
-            #         # there was an error with wrong input size
-            #         print("Error: ", identifier)
-            #         continue
-
-            # # label_pred, center_pred, x_reg_pred, y_reg_pred = output
-
-            # prediction = F.interpolate(
-            #     label_pred,
-            #     size=image.size()[2:],
-            #     mode="bilinear",
-            #     align_corners=True,
-            # )
-            # prediction = prediction.data.cpu().numpy()
-            # # label = label.cpu().numpy()
-            # prediction = np.argmax(prediction, axis=1)
-            # centers = output[1]
-
-            # centers = F.interpolate(
-            #     centers,
-            #     size=image.size()[2:],
-            #     mode="bilinear",
-            #     align_corners=True,
-            # )
-
-            # # max pool according to paper
-            # centers_new = F.max_pool2d(centers, 7, stride=1, padding=3)
-
-            # # use thresholding=0.1 (of 255)
-            # centers = torch.where(
-            #     centers == centers_new, centers, torch.zeros_like(centers)
-            # )
-            # # choose top k points, need to sort, then choose the top
-            # # centers = torch.where(centers>10, torch.ones_like(centers), torch.zeros_like(centers))
-            # centers_reg = F.interpolate(
-            #     output[2],
-            #     size=image.size()[2:],
-            #     mode="bilinear",
-            #     align_corners=True,
-            # )
-
-            # # print(output[2].shape)
-            # # exit(0)
-            # points = (centers > 0.1 * 255).nonzero()
-            # print("points.shape: ", points.shape)
-            # print("centers_reg.shape: ", centers_reg.shape)
-            # points_only = points[:, 2:].unsqueeze(-1).unsqueeze(
-            #     -1
-            # ) * torch.ones_like(centers_reg)
-            # print("points_only.shape: ", points_only.shape)
-
-            # # x_reg = centers_reg[0][0]
-            # # y_reg = centers_reg[0][1]
-            # # print("x_reg.shape: ", x_reg.shape)
-            # # print("prediction.shape: ", prediction.shape)
-
-            # diff_sqr = (points_only - centers_reg) ** 2
-            # mag = torch.sqrt(diff_sqr[:, 0, :, :] + diff_sqr[:, 1, :, :])
-            # print("mag: ", mag.shape)
-            # final = torch.argmin(mag, 0)
-            # print(final)
-            # show = (final/torch.max(final)).data.cpu().numpy()
-            # plt.imshow(final.data.cpu().numpy())
-            # plt.show()
-            # h, w = x_reg.shape
-            # gridx, gridy = torch.meshgrid(torch.arange(h), torch.arange(w))
-            # x_new = gridx.cuda() + x_reg
-            # y_new = gridy.cuda() + y_reg
-            # exit(0)
+            # to get final instance ID, multiply groupID and classID
 
             # display outputs
-            print(label.shape)
             semantic_show = decode_seg_map_sequence(
                 label.cpu().numpy(), dataset=self.args.dataset,
             )[0].permute(1, 2, 0)
@@ -297,6 +338,7 @@ class Tester(object):
             # out centers
             # centers_show = centers_select[0].data.cpu().numpy()
             centers_show = center[0].data.cpu().numpy()
+
             # out x_reg prediction
             # out_image = centers_reg[0][0].data.cpu().numpy()
 
@@ -652,7 +694,8 @@ def main():
     torch.manual_seed(args.seed)
     tester = Tester(args)
     # tester.evaluate(0)
-    tester.test_grouping(0)
+    # tester.test_grouping(0)
+    tester.test_saving(0)
 
 
 if __name__ == "__main__":

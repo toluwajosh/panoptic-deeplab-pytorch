@@ -322,6 +322,7 @@ class CityscapesPanoptic(data.Dataset):
             )
 
         print("Found %d %s images" % (len(self.files[split]), split))
+        self.file_path = None
 
     def __len__(self):
         return len(self.files[self.split])
@@ -386,9 +387,9 @@ class CityscapesPanoptic(data.Dataset):
                 raise
 
             x_patch = np.tile(np.arange(c_x, -c_x, -1), (h, 1))
-            x_patch = np.where(x_patch==0, 1, x_patch)
+            x_patch = np.where(x_patch == 0, 1, x_patch)
             y_patch = np.tile(np.arange(c_y, -c_y, -1), (w, 1)).T
-            y_patch = np.where(y_patch==0, 1, y_patch)
+            y_patch = np.where(y_patch == 0, 1, y_patch)
             x_reg[y0:y1, x0:x1] = np.where(
                 mask == 1, x_patch, x_reg[y0:y1, x0:x1]
             )
@@ -405,6 +406,7 @@ class CityscapesPanoptic(data.Dataset):
             img_path.split(os.sep)[-2],
             os.path.basename(img_path)[:-15] + "gtFine_labelIds.png",
         )
+        self.file_path = lbl_path
 
         _img = Image.open(img_path).convert("RGB")
         _tmp = np.array(Image.open(lbl_path), dtype=np.uint8)
@@ -438,6 +440,10 @@ class CityscapesPanoptic(data.Dataset):
             return self.transform_val(sample)
         elif self.split == "test":
             return self.transform_ts(sample)
+
+    def current_filepath(self):
+        assert (self.split == "test")
+        return self.file_path
 
     def encode_segmap(self, mask):
         # Put all void classes to zero
@@ -496,7 +502,7 @@ class CityscapesPanoptic(data.Dataset):
 
         composed_transforms = transforms.Compose(
             [
-                # tr.FixedResize(size=self.args.crop_size),
+                tr.FixedResize(size=self.args.crop_size),
                 tr.Normalize(
                     mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
                 ),
@@ -504,7 +510,7 @@ class CityscapesPanoptic(data.Dataset):
             ]
         )
 
-        return composed_transforms(sample)
+        return composed_transforms(sample), self.file_path
 
 
 if __name__ == "__main__":
@@ -518,13 +524,15 @@ if __name__ == "__main__":
     args.base_size = 513
     args.crop_size = 513
 
-    cityscapes_train = CityscapesPanoptic(args, split="val")
+    cityscapes_train = CityscapesPanoptic(args, split="test")
 
     dataloader = DataLoader(
         cityscapes_train, batch_size=1, shuffle=True, num_workers=2
     )
 
-    for ii, sample in enumerate(dataloader):
+    for ii, (sample, filepath) in enumerate(dataloader):
+        print(filepath)
+    # for ii, sample in enumerate(dataloader): # in case of test loader
         for jj in range(sample["image"].size()[0]):
             # print(sample.keys())
             # exit(0)

@@ -5,10 +5,10 @@ python train_panoptic.py \
 --lr-step 50 \
 --epochs 200 \
 --batch-size 2 \
---checkname panoptic-deeplab-mobilenet-noaug \
+--checkname panoptic-deeplab-mobilenet-final \
 --eval-interval 1 \
 --task panoptic \
---resume /home/tjosh/codes/pytorch-deeplab-xception/run/cityscapes/panoptic-deeplab-mobilenet-noaug/model_best.pth.tar \
+--resume /home/tjosh/codes/pytorch-deeplab-xception/run/cityscapes/panoptic-deeplab-mobilenet-final/model_best.pth.tar \
 --dataset cityscapes
 
 
