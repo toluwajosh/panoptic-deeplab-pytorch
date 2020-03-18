@@ -301,9 +301,6 @@ class CityscapesPanoptic(data.Dataset):
         # hardcoded things category
         # self.things_category = [5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 30]
         self.things_category = [
-            "pole",
-            "traffic light",
-            "traffic sign",
             "person",
             "rider",
             "car",
@@ -312,7 +309,6 @@ class CityscapesPanoptic(data.Dataset):
             "train",
             "motorcycle",
             "bicycle",
-            "trailer",
         ]
 
         if not self.files[split]:
@@ -524,15 +520,15 @@ if __name__ == "__main__":
     args.base_size = 513
     args.crop_size = 513
 
-    cityscapes_train = CityscapesPanoptic(args, split="test")
+    cityscapes_train = CityscapesPanoptic(args, split="val")
 
     dataloader = DataLoader(
         cityscapes_train, batch_size=1, shuffle=True, num_workers=2
     )
 
-    for ii, (sample, filepath) in enumerate(dataloader):
-        print(filepath)
-    # for ii, sample in enumerate(dataloader): # in case of test loader
+    # for ii, (sample, filepath) in enumerate(dataloader):
+    #     print(filepath)
+    for ii, sample in enumerate(dataloader): # in case of test loader
         for jj in range(sample["image"].size()[0]):
             # print(sample.keys())
             # exit(0)
