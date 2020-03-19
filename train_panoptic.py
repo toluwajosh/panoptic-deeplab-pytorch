@@ -46,7 +46,6 @@ class Trainer(object):
             freeze_bn=args.freeze_bn,
         )
 
-        # TODO(toluwajosh): Implement the following.
         if args.create_params:
             train_params = [
                 {"params": model.get_1x_lr_params(), "lr": args.lr},

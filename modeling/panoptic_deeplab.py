@@ -35,7 +35,7 @@ class PanopticDeepLab(nn.Module):
         self.aspp_pan = build_aspp(backbone, output_stride, BatchNorm)
         # semantic decoder
         self.semantic_decoder = build_decoder(256, backbone, BatchNorm)
-        # TODO(toluwajosh): instance decoder
+        # panoptic head decoder
         self.panoptic_decoder = build_decoder(
             panoptic_out, backbone, BatchNorm
         )
@@ -47,8 +47,7 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=5,
                 stride=1,
                 padding=1,
-                # bias=False,  # xception-old, - 21
-                groups=256,  # dsc 1, too slow without this
+                groups=256,
             ),
             BatchNorm(256),
             nn.ReLU(),
@@ -59,7 +58,6 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=1,
                 stride=1,
                 padding=1,
-                # bias=False,  # xception-old, - 21
             ),
         )
 
@@ -70,8 +68,7 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=5,
                 stride=1,
                 padding=1,
-                # bias=False,  # xception-old, - 21
-                groups=32,  # dsc 1
+                groups=32,
             ),
             BatchNorm(32),
             nn.ReLU(),
@@ -82,7 +79,6 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=1,
                 stride=1,
                 padding=1,
-                # bias=False,  # not in final
             ),
             nn.ReLU(),
         )
@@ -95,9 +91,7 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=5,
                 stride=1,
                 padding=1,
-                # bias=False,  # xception-old, - 21
-                # groups=inter_channels,  # dsc 2, xception-old
-                groups=inter_channels,  # -21, dsc 1
+                groups=inter_channels,
             ),
             BatchNorm(inter_channels),
             nn.ReLU(),
@@ -108,11 +102,7 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=1,
                 stride=1,
                 padding=1,
-                # bias=False,  # xception-old, - 21
-                # groups=2,  # dsc 2
             ),
-            # nn.Tanh(),
-            # nn.LeakyReLU(negative_slope=0.89),
         )
 
         self.instance_center_regress_y = nn.Sequential(
@@ -122,9 +112,7 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=5,
                 stride=1,
                 padding=1,
-                # bias=False,  # xception-old, - 21
-                # groups=inter_channels,  # dsc 2, xception-old
-                groups=inter_channels,  # -21, dsc 1
+                groups=inter_channels,
             ),
             BatchNorm(inter_channels),
             nn.ReLU(),
@@ -135,11 +123,7 @@ class PanopticDeepLab(nn.Module):
                 kernel_size=1,
                 stride=1,
                 padding=1,
-                # bias=False,  # xception-old, - 21
-                # groups=2,  # dsc 2
             ),
-            # nn.Tanh(),
-            # nn.LeakyReLU(negative_slope=0.89),
         )
 
         self.freeze_bn = freeze_bn
@@ -157,7 +141,6 @@ class PanopticDeepLab(nn.Module):
             x_panoptic, mid_level_feat, low_level_feat
         )
 
-        # TODO(toluwajosh): make sure next stage is necessary
         x_semantic = F.interpolate(
             x_semantic,
             size=input.size()[2:],
@@ -177,7 +160,8 @@ class PanopticDeepLab(nn.Module):
         center_regress_y = self.instance_center_regress_y(x_panoptic)
         return x_semantic, x_center_predict, center_regress_x, center_regress_y
 
-    # TODO(toluwajosh): resolve the conflict
+    # TODO(toluwajosh): original code has a class argument same as this function
+    #   resolve.
     def freeze_bn(self):
         for m in self.modules():
             if isinstance(m, SynchronizedBatchNorm2d):
