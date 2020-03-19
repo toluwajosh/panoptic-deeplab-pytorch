@@ -2,7 +2,7 @@
 
 The objective of this repository is to create the panoptic deeplab model and training pipeline as presented in the [paper](https://arxiv.org/pdf/1911.10194.pdf). The code base is adopted from the [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception) repository. Much will be changed as time goes on, and when all objectives have been achieved, the name of the repo will be changed to reflect the updated content.
 
-## Solution pipeline
+## Solution Pipeline
 
 We already have a semantic segmentation branch of DeepLabV3+, so the rest of the pipeline will be as follows;
 
@@ -10,18 +10,18 @@ We already have a semantic segmentation branch of DeepLabV3+, so the rest of the
 - [X] Groundtruth instance centers encoding by a 2D Gaussian with standard deviation of 8 pixels
 - [X] Add compound loss(criterion) function.
 - [X] Panoptic Dataloader for Citiscapes
-- [ ] Panoptic Dataloader for COCO
-- [ ] Combine VOC and Citiscapes training data
 - [X] Apply 5×5 depthwise-separable convolution. (Not as in the paper)
 - [X] Test training with slim backbone (mobileNet), and
 - [X] Training with xception backbone
-- [ ] Training with ResNet backbone
 
-## Run on google cloud platform
+## Running on google cloud platform
 
-Download cityscape dataset as explained [here](https://github.com/reger-men/keras_multi_gpus/wiki/How-to-download-cityscapes-dataset-via-terminal)
+Cityscapes dataset can be downloaded to a cloud platform as explained [here](https://github.com/reger-men/keras_multi_gpus/wiki/How-to-download-cityscapes-dataset-via-terminal). Install Anaconda environment with the `environment.yml` file.
 
-**see the original README below:**
+
+---
+
+**See the original README for DeepLab Xception for Semantic Segmentation below below:**
 
 ## pytorch-deeplab-xception
 
