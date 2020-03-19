@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 import torch
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 
 from dataloaders import make_data_loader
@@ -88,12 +89,15 @@ class Trainer(object):
         # Define Evaluator
         self.evaluator = Evaluator(self.nclass)
         # Define lr scheduler
-        self.scheduler = LR_Scheduler(
-            args.lr_scheduler,
-            args.lr,
-            args.epochs,
-            len(self.train_loader),
-            lr_step=args.lr_step,
+        # self.scheduler = LR_Scheduler(
+        #     args.lr_scheduler,
+        #     args.lr,
+        #     args.epochs,
+        #     len(self.train_loader),
+        #     lr_step=args.lr_step,
+        # )
+        self.scheduler = ReduceLROnPlateau(
+            optimizer, mode="max", factor=0.89, patience=2, verbose=True
         )
 
         # Using cuda
@@ -598,6 +602,7 @@ def main():
             args.eval_interval - 1
         ):
             trainer.validation(epoch)
+            trainer.scheduler(trainer.best_pred)
 
     trainer.writer.close()
 
