@@ -162,7 +162,7 @@ class PanopticLosses(object):
         y_reg_loss = mse_loss(y_reg_pred, y_reg.unsqueeze(1))
         return (
             semantic_loss * 10.0,
-            center_loss * 0.025,
+            center_loss * 0.15,
             x_reg_loss * 0.01,
             y_reg_loss * 0.01,
         )
