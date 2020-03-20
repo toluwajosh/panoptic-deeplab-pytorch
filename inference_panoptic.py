@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 
 from dataloaders import make_data_loader
-from dataloaders.utils import decode_seg_map_sequence
+from dataloaders.utils import decode_seg_map_sequence, decode_segmap
 from modeling.panoptic_deeplab import PanopticDeepLab
 from modeling.sync_batchnorm.replicate import patch_replication_callback
 from mypath import Path
@@ -147,12 +147,21 @@ class Tester(object):
         # in label IDs, according to cityscapes
         self.things_category = [24, 25, 26, 27, 28, 31, 32, 33]
 
+    def resize_tensor(self, tensor):
+        # tensor = F.interpolate(
+        #     tensor, size=(1024, 2048), mode="nearest",
+        # )
+        tensor = F.upsample_nearest(
+            tensor.unsqueeze(0).float(), size=(1024, 2048)
+        )
+        return tensor[0]
+
     def test_and_save(self):
         """Test panoptic segmentation model and save as instanceId images
         """
 
         self.model.eval()
-        tbar = tqdm(self.test_loader, desc="\r")
+        tbar = tqdm(self.val_loader, desc="\r")
         test_loss = 0.0
         for i, (sample, filepath) in enumerate(tbar):
             image = sample["image"]
@@ -164,7 +173,8 @@ class Tester(object):
                 "gtFine_trainvaltest", "gtFine_test_result"
             )
             filename = new_filepath.split("/")[-1]
-            print()
+
+            print("filepath: ", filepath[0])
             directorypath = new_filepath.split("/")[:-1]
             directorypath = "/".join(directorypath)
             if not os.path.exists(directorypath):
@@ -179,29 +189,49 @@ class Tester(object):
                     print("Error: ", identifier)
                     continue
 
-            semantic_pred, center_pred, x_offset_pred, y_offset_pred = output
+            (
+                semantic_pred,
+                center_pred,
+                x_offset_pred,
+                y_offset_pred,
+            ) = output.cpu()
 
             # ############## to create the InstanceIDs
             # See explanations here: https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/preparation/json2instanceImg.py
             # 1. convert trainIDs to labelIDs
             semantic_labels = np.argmax(semantic_pred.cpu(), axis=1)
-            for trainId in range(self.NUM_CLASSES):
-                semantic_labels[
-                    semantic_labels == trainId
-                ] = self.valid_classes[trainId]
-            # 2. multiply by 1000
-            semantic_labels_maxed = semantic_labels * 1000
 
-            # 3. get the instances IDs
+            for trainId in range(self.NUM_CLASSES):
+                semantic_labels[semantic_labels == trainId] = (
+                    self.valid_classes[trainId] + 100
+                )
+            semantic_labels -= 100  # revert back to original IDs
+
+            # 2. get the instances IDs
+            # TODO: resize before here?
             center_pred = center_pred[0]
-            x_offset_pred = x_offset_pred[0]
-            y_offset_pred = y_offset_pred[0]
+            x_offset_pred = x_offset_pred[0] / 2
+            y_offset_pred = y_offset_pred[0] / 2
+            semantic_labels, center_pred, x_offset_pred, y_offset_pred = map(
+                self.resize_tensor,
+                [semantic_labels, center_pred, x_offset_pred, y_offset_pred],
+            )
+            print(center_pred.shape)
+            plt.show(center_pred[0].cpu().numpy())
+            plt.show()
             instances = self.get_instances(
                 semantic_labels, center_pred, x_offset_pred, y_offset_pred
             )
 
             # 4. and add to semantic_labels
-            final_instance_image = semantic_labels_maxed.cuda() + instances
+            # final_instance_image = semantic_labels_maxed.cuda() + instances
+            # final_instance_image = semantic_labels.cuda() + instances
+
+            final_instance_image = torch.where(
+                instances == 0,
+                semantic_labels.cuda(),
+                (semantic_labels.cuda() * 1000) + instances.int(),
+            )
 
             # we want;
             # frankfurt_000000_000294_gtFine_labelIds.png ->
@@ -212,16 +242,20 @@ class Tester(object):
                 + filename.replace("labelIds", "instanceIds")
             )
 
+            # final_instance_image = semantic_labels
             # save instance image (finally!)
-            print(save_filepath)
-            final_instance_image = np.uint8(
-                final_instance_image[0].cpu().numpy()
+            final_instance_image = (
+                final_instance_image[0].cpu().numpy().astype(np.int32)
             )
-            instance_image = Image.fromarray(final_instance_image)
+            # # TODO: remove shows
+            # plt.imshow(final_instance_image)
+            # plt.show()
+            instance_image = Image.fromarray(final_instance_image, "I")
+            # instance_image.show()
             instance_image.save(save_filepath)
 
     def get_instances(
-        self, semantic_labels, center, x_offset, y_offset, center_threshold=250
+        self, semantic_labels, center, x_offset, y_offset, center_threshold=128
     ):
         mask = torch.zeros_like(semantic_labels)
         for num in self.things_category:
@@ -230,14 +264,14 @@ class Tester(object):
         # remove pixels in center that belong to stuffs
         center = center * mask.cuda()
 
-        # 2.0 get center points
+        # 1.0 get center points
         # max pool according to paper
         centers_max = F.max_pool2d(center, 7, stride=1, padding=3)
         centers_select = torch.where(
             center == centers_max, center, torch.zeros_like(center)
         )
 
-        # 2.1 choose top k points, need to sort, then choose the top
+        # 2.0 choose top k points, need to sort, then choose the top
         centers_select = torch.where(
             centers_select > center_threshold,
             torch.ones_like(centers_select) * 255,
@@ -256,6 +290,7 @@ class Tester(object):
 
         # get indices of center points TODO: ensure correct axis
         center_points = centers_select.nonzero()
+
         if center_points.shape[0] < 1:
             return torch.zeros_like(semantic_labels[0]).cuda()
         center_points_x = center_points[:, 2:3].unsqueeze(
@@ -275,6 +310,7 @@ class Tester(object):
             mask.cuda() == 0, torch.zeros_like(instances), instances,
         )
 
+        # TODO: remove
         # for debug:
         # show_image = centers_select[0].cpu().numpy()
         # plt.imshow(show_image)

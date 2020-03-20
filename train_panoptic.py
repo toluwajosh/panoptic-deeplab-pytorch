@@ -603,6 +603,8 @@ def main():
         ):
             trainer.validation(epoch)
             trainer.scheduler(trainer.best_pred)
+            print('\n=>Epoches %i, \
+                previous best = %.4f' % (epoch, best_pred))
 
     trainer.writer.close()
 

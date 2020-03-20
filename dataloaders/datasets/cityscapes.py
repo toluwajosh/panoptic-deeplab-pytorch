@@ -484,7 +484,7 @@ class CityscapesPanoptic(data.Dataset):
 
         composed_transforms = transforms.Compose(
             [
-                tr.FixScaleCrop(crop_size=self.args.crop_size),
+                tr.FixedResize(size=self.args.crop_size),
                 tr.Normalize(
                     mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
                 ),
@@ -492,7 +492,7 @@ class CityscapesPanoptic(data.Dataset):
             ]
         )
 
-        return composed_transforms(sample)
+        return composed_transforms(sample), self.file_path
 
     def transform_ts(self, sample):
 
