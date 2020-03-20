@@ -17,6 +17,7 @@ from utils.metrics import Evaluator
 from utils.saver import Saver
 from utils.summaries import TensorboardSummary
 
+torch.cuda.empty_cache()
 
 class Trainer(object):
     def __init__(self, args):
@@ -159,7 +160,7 @@ class Trainer(object):
                     x_reg.cuda(),
                     y_reg.cuda(),
                 )
-            self.scheduler(self.optimizer, i, epoch, self.best_pred)
+            # self.scheduler(self.optimizer, i, epoch, self.best_pred)
             self.optimizer.zero_grad()
             try:
                 output = self.model(image)
@@ -602,9 +603,9 @@ def main():
             args.eval_interval - 1
         ):
             trainer.validation(epoch)
-            trainer.scheduler(trainer.best_pred)
+            trainer.scheduler.step(trainer.best_pred)
             print('\n=>Epoches %i, \
-                previous best = %.4f' % (epoch, best_pred))
+                previous best = %.4f' % (epoch, trainer.best_pred))
 
     trainer.writer.close()
 

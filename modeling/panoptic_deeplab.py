@@ -28,7 +28,10 @@ class PanopticDeepLab(nn.Module):
 
         self.backbone = build_backbone(backbone, output_stride, BatchNorm)
 
-        panoptic_out = 96
+        if backbone == "xception_3stage":
+            panoptic_out = 128
+        else:
+            panoptic_out = 96
 
         # backbone context
         self.aspp_sem = build_aspp(backbone, output_stride, BatchNorm)

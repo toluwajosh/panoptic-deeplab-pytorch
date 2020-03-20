@@ -269,7 +269,7 @@ class CityscapesPanoptic(data.Dataset):
             32,
             33,
             30,  # added
-            0,  # added
+            34,  # added
         ]
         self.class_names = [
             "road",
@@ -292,7 +292,7 @@ class CityscapesPanoptic(data.Dataset):
             "motorcycle",
             "bicycle",
             "trailer",  # added
-            "unlabelled",  # added
+            "unknown",  # added to make up 21 classes
         ]
 
         self.ignore_index = 255
@@ -325,9 +325,6 @@ class CityscapesPanoptic(data.Dataset):
 
     def load_centers_and_regression(self, annotation_file, size):
         annotation_data = load_json_data(annotation_file)
-
-        # we need to know the size of image
-        # centers_image = np.ones([size[1], size[0]])
         centers_image = np.zeros([size[1], size[0]])
         x_reg = np.zeros([size[1], size[0]])
         y_reg = np.zeros([size[1], size[0]])
@@ -371,7 +368,7 @@ class CityscapesPanoptic(data.Dataset):
                 )
             except ValueError as identifier:
                 print("\n")
-                print(identifier)
+                print("Error: ", identifier)
                 print(
                     "w: {} h: {} x0: {} x1: {} y0: {} y1: {}".format(
                         w, h, x0, x1, y0, y1
@@ -438,7 +435,7 @@ class CityscapesPanoptic(data.Dataset):
             return self.transform_ts(sample)
 
     def current_filepath(self):
-        assert (self.split == "test")
+        assert self.split == "test"
         return self.file_path
 
     def encode_segmap(self, mask):
@@ -464,12 +461,14 @@ class CityscapesPanoptic(data.Dataset):
     def transform_tr(self, sample):
         composed_transforms = transforms.Compose(
             [
+                # TODO: remove commented for final
                 # tr.RandomHorizontalFlip(),
-                tr.RandomScaleCrop(
-                    base_size=self.args.base_size,
-                    crop_size=self.args.crop_size,
-                    fill=255,
-                ),
+                # tr.RandomScaleCrop(
+                #     base_size=self.args.base_size,
+                #     crop_size=self.args.crop_size,
+                #     fill=255,
+                # ),
+                tr.FixedResize(size=self.args.crop_size),
                 tr.RandomGaussianBlur(),
                 tr.Normalize(
                     mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
@@ -491,8 +490,8 @@ class CityscapesPanoptic(data.Dataset):
                 tr.ToTensor(),
             ]
         )
-
-        return composed_transforms(sample), self.file_path
+        # TODO: resolve for final, should be without the addition
+        return composed_transforms(sample)  # , self.file_path
 
     def transform_ts(self, sample):
 
@@ -527,43 +526,35 @@ if __name__ == "__main__":
     )
 
     # for ii, (sample, filepath) in enumerate(dataloader):
-    #     print(filepath)
-    for ii, sample in enumerate(dataloader): # in case of test loader
+    # print(filepath)
+    for ii, sample in enumerate(dataloader):  # in case of test loader
         for jj in range(sample["image"].size()[0]):
-            # print(sample.keys())
-            # exit(0)
             img = sample["image"].numpy()
             gt = sample["label"].numpy()
-            # mask = np.zeros_like(gt)
-            # mask[gt > 0] = 1
-            # cen = mask[0]
-
             center = sample["center"].numpy()[0]
             x_reg = sample["x_reg"].numpy()[0]
             y_reg = sample["y_reg"].numpy()[0]
 
-            print(img.shape)
-            print(np.max(center))
-            print(np.min(center))
-            print(np.max(x_reg))
-            print(np.min(x_reg))
-            print(np.max(y_reg))
-            print(np.min(y_reg))
-            # exit(0)
+            print("image shape: ", img.shape)
+            print("center max: ", np.max(center))
+            print("center min: ", np.min(center))
+            print("x_reg max: ", np.max(x_reg))
+            print("x_reg min: ", np.min(x_reg))
+            print("y_reg max: ", np.max(y_reg))
+            print("y_reg min: ", np.min(y_reg))
 
             tmp = np.array(gt[jj]).astype(np.uint8)
-            segmap = decode_segmap(tmp, dataset="pascal")
+            segmap = decode_segmap(tmp, dataset="cityscapes")
             img_tmp = np.transpose(img[jj], axes=[1, 2, 0])
             img_tmp *= (0.229, 0.224, 0.225)
             img_tmp += (0.485, 0.456, 0.406)
             img_tmp *= 255.0
             img_tmp = img_tmp.astype(np.uint8)
-            # center = center.astype(np.uint8) / 255.0
+            plt.imshow(img_tmp)
+            plt.show()
 
             plt.figure()
             plt.title("display")
-            # plt.subplot(221)
-            # plt.imshow(img_tmp)
             plt.subplot(221)
             plt.imshow(segmap)
             plt.subplot(222)
@@ -577,4 +568,3 @@ if __name__ == "__main__":
             break
 
     plt.show(block=True)
-

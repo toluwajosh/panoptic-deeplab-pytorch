@@ -80,7 +80,7 @@ class Tester(object):
         )
 
         self.void_classes = [
-            # 0,
+            0,
             1,
             2,
             3,
@@ -118,7 +118,7 @@ class Tester(object):
             32,
             33,
             30,  # added
-            0,  # added
+            34,  # added
         ]
         self.class_names = [
             "road",
@@ -148,12 +148,12 @@ class Tester(object):
         self.things_category = [24, 25, 26, 27, 28, 31, 32, 33]
 
     def resize_tensor(self, tensor):
-        # tensor = F.interpolate(
-        #     tensor, size=(1024, 2048), mode="nearest",
-        # )
-        tensor = F.upsample_nearest(
-            tensor.unsqueeze(0).float(), size=(1024, 2048)
+        tensor = F.interpolate(
+            tensor.unsqueeze(0).float(), size=(1024, 2048), mode="nearest",
         )
+        # tensor = F.upsample_nearest(
+        #     tensor.unsqueeze(0).float(), size=(1024, 2048)
+        # )
         return tensor[0]
 
     def test_and_save(self):
@@ -164,21 +164,22 @@ class Tester(object):
         tbar = tqdm(self.val_loader, desc="\r")
         test_loss = 0.0
         for i, (sample, filepath) in enumerate(tbar):
-            image = sample["image"]
-
-            if self.args.cuda:
-                image = image.cuda()
-
             new_filepath = filepath[0].replace(
                 "gtFine_trainvaltest", "gtFine_test_result"
             )
             filename = new_filepath.split("/")[-1]
 
-            print("filepath: ", filepath[0])
             directorypath = new_filepath.split("/")[:-1]
             directorypath = "/".join(directorypath)
             if not os.path.exists(directorypath):
                 os.makedirs(directorypath)
+            ##############################
+
+            # model ###################
+            image = sample["image"]
+
+            if self.args.cuda:
+                image = image.cuda()
 
             input_image = image.clone()
             with torch.no_grad():
@@ -208,25 +209,15 @@ class Tester(object):
             semantic_labels -= 100  # revert back to original IDs
 
             # 2. get the instances IDs
-            # TODO: resize before here?
             center_pred = center_pred[0]
-            x_offset_pred = x_offset_pred[0] / 2
-            y_offset_pred = y_offset_pred[0] / 2
-            # semantic_labels, center_pred, x_offset_pred, y_offset_pred = map(
-            #     self.resize_tensor,
-            #     [semantic_labels, center_pred, x_offset_pred, y_offset_pred],
-            # )
-            print(center_pred.shape)
-            plt.show(center_pred[0].cpu().numpy())
-            plt.show()
+            x_offset_pred = x_offset_pred[0]  / 4
+            y_offset_pred = y_offset_pred[0]  / 2
+
             instances = self.get_instances(
                 semantic_labels, center_pred, x_offset_pred, y_offset_pred
             )
 
             # 4. and add to semantic_labels
-            # final_instance_image = semantic_labels_maxed.cuda() + instances
-            # final_instance_image = semantic_labels.cuda() + instances
-
             final_instance_image = torch.where(
                 instances == 0,
                 semantic_labels.cuda(),
@@ -249,15 +240,26 @@ class Tester(object):
                 final_instance_image[0].cpu().numpy().astype(np.int32)
             )
             # # TODO: remove shows
+            # # print(filepath)
+            # img_tmp = self.resize_tensor(image[0])
+            # img_tmp = np.transpose(img_tmp.cpu().numpy(), axes=[1, 2, 0])
+            # img_tmp *= (0.229, 0.224, 0.225)
+            # img_tmp += (0.485, 0.456, 0.406)
+            # img_tmp *= 255.0
+            # img_tmp = img_tmp.astype(np.uint8)
+
+            # plt.subplot(121)
+            # plt.imshow(img_tmp)
+            # plt.subplot(122)
             # plt.imshow(final_instance_image)
             # plt.show()
+            # continue
 
             instance_image = Image.fromarray(final_instance_image, "I")
-            # instance_image.show()
             instance_image.save(save_filepath)
 
     def get_instances(
-        self, semantic_labels, center, x_offset, y_offset, center_threshold=128
+        self, semantic_labels, center, x_offset, y_offset, center_threshold=250
     ):
         mask = torch.zeros_like(semantic_labels)
         for num in self.things_category:
@@ -267,7 +269,7 @@ class Tester(object):
         center = center * mask.cuda()
 
         # 1.0 get center points
-        # max pool according to paper
+        # key-point based non-maximum supression, using max pooling
         centers_max = F.max_pool2d(center, 7, stride=1, padding=3)
         centers_select = torch.where(
             center == centers_max, center, torch.zeros_like(center)
@@ -292,6 +294,8 @@ class Tester(object):
 
         # get indices of center points TODO: ensure correct axis
         center_points = centers_select.nonzero()
+        # TODO: remove
+        print(center_points.shape)
 
         if center_points.shape[0] < 1:
             return torch.zeros_like(semantic_labels[0]).cuda()
