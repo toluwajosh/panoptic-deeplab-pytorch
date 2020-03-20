@@ -194,7 +194,7 @@ class Tester(object):
                 center_pred,
                 x_offset_pred,
                 y_offset_pred,
-            ) = output.cpu()
+            ) = output
 
             # ############## to create the InstanceIDs
             # See explanations here: https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/preparation/json2instanceImg.py
@@ -212,10 +212,10 @@ class Tester(object):
             center_pred = center_pred[0]
             x_offset_pred = x_offset_pred[0] / 2
             y_offset_pred = y_offset_pred[0] / 2
-            semantic_labels, center_pred, x_offset_pred, y_offset_pred = map(
-                self.resize_tensor,
-                [semantic_labels, center_pred, x_offset_pred, y_offset_pred],
-            )
+            # semantic_labels, center_pred, x_offset_pred, y_offset_pred = map(
+            #     self.resize_tensor,
+            #     [semantic_labels, center_pred, x_offset_pred, y_offset_pred],
+            # )
             print(center_pred.shape)
             plt.show(center_pred[0].cpu().numpy())
             plt.show()
@@ -244,12 +244,14 @@ class Tester(object):
 
             # final_instance_image = semantic_labels
             # save instance image (finally!)
+            final_instance_image = self.resize_tensor(final_instance_image)
             final_instance_image = (
                 final_instance_image[0].cpu().numpy().astype(np.int32)
             )
             # # TODO: remove shows
             # plt.imshow(final_instance_image)
             # plt.show()
+
             instance_image = Image.fromarray(final_instance_image, "I")
             # instance_image.show()
             instance_image.save(save_filepath)
