@@ -213,6 +213,7 @@ class Tester(object):
             x_offset_pred = x_offset_pred[0]  / 4
             y_offset_pred = y_offset_pred[0]  / 2
 
+            # 3. get the instances IDs
             instances = self.get_instances(
                 semantic_labels, center_pred, x_offset_pred, y_offset_pred
             )
