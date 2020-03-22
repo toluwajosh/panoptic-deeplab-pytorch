@@ -31,7 +31,7 @@ The Cityscapes dataset can be downloaded to a cloud platform as explained [here]
 
 ---
 
-**See the original README for DeepLab Xception for Semantic Segmentation below below:**
+**See the original README for DeepLab Xception for Semantic Segmentation below:**
 
 ## pytorch-deeplab-xception
 
