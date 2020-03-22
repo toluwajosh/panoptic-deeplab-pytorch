@@ -300,7 +300,6 @@ class CityscapesPanoptic(data.Dataset):
         self.class_map = dict(zip(self.valid_classes, range(self.NUM_CLASSES)))
 
         # hardcoded things category
-        # self.things_category = [5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 30]
         self.things_category = [
             "person",
             "rider",
@@ -416,7 +415,6 @@ class CityscapesPanoptic(data.Dataset):
         _centers, x_reg, y_reg = self.load_centers_and_regression(
             annotation_file, _img.size
         )
-        # _centers = Image.fromarray(np.float32(_centers))
         _centers = Image.fromarray(np.uint8(_centers * 255))
         x_reg = Image.fromarray(np.int32(x_reg), "I")
         y_reg = Image.fromarray(np.int32(y_reg), "I")
@@ -538,7 +536,7 @@ if __name__ == "__main__":
         cityscapes_train, batch_size=1, shuffle=True, num_workers=2
     )
 
-    # for ii, (sample, filepath) in enumerate(dataloader):
+    # for ii, filepath in enumerate(dataloader): # in case of val loader
     # print(filepath)
     for ii, sample in enumerate(dataloader):  # in case of test loader
         for jj in range(sample["image"].size()[0]):

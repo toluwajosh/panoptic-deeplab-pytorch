@@ -13,6 +13,7 @@ We already have a semantic segmentation branch from the DeepLabV3+, so the rest 
 - [X] Panoptic Dataloader for Cityscapes dataset
 - [X] Test training with slim backbone (mobileNet), and
 - [X] Training with Xception backbone
+- [ ] Training with COCO dataset
 
 The [environment.yml](environment.yml) file includes the python packages needed to run the training and other scripts in the repository. This can be installed using Anaconda.
 
@@ -21,7 +22,6 @@ The [environment.yml](environment.yml) file includes the python packages needed 
 - **[train_panoptic.py](train_panoptic.py)**: The main script to train panoptic segmentation. Run `python train_panoptic.py --help` to see the scrip usage and all the training options.
 
 - **[inference_panoptic.py](inference_panoptic.py)**: The script for predicting instanceID images for the test dataset.
-
 
 
 ## Running on google cloud platform

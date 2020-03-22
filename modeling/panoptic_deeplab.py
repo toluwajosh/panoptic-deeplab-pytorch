@@ -163,8 +163,6 @@ class PanopticDeepLab(nn.Module):
         center_regress_y = self.instance_center_regress_y(x_panoptic)
         return x_semantic, x_center_predict, center_regress_x, center_regress_y
 
-    # TODO(toluwajosh): original code has a class argument same as this function
-    #   resolve.
     def freeze_bn(self):
         for m in self.modules():
             if isinstance(m, SynchronizedBatchNorm2d):
