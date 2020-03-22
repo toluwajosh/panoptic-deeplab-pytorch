@@ -47,8 +47,6 @@ class LR_Scheduler(object):
         elif self.mode == 'poly':
             lr = self.lr * pow((1 - 1.0 * T / self.N), 0.9)
         elif self.mode == 'step':
-            # this acted more like a flip step, does not account for fraction powers
-            # lr = self.lr * (0.1 ** (epoch // self.lr_step))
             lr = self.lr * (0.1 ** (epoch / self.lr_step))
         else:
             raise NotImplemented

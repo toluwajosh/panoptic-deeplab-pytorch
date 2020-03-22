@@ -24,7 +24,6 @@ The [environment.yml](environment.yml) file includes the python packages needed 
 
 
 
-
 ## Running on google cloud platform
 
 The Cityscapes dataset can be downloaded to a cloud platform as explained [here](https://github.com/reger-men/keras_multi_gpus/wiki/How-to-download-cityscapes-dataset-via-terminal).
