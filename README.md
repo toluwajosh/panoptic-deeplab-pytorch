@@ -1,22 +1,33 @@
 # Pytorch Panoptic DeepLab
 
-The objective of this repository is to create the panoptic deeplab model and training pipeline as presented in the [paper](https://arxiv.org/pdf/1911.10194.pdf). The code base is adopted from the [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception) repository. Much will be changed as time goes on, and when all objectives have been achieved, the name of the repo will be changed to reflect the updated content.
+The objective of this repository is to create the panoptic deeplab model and training pipeline as presented in the [paper](https://arxiv.org/pdf/1911.10194.pdf). The code base is adopted from the [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception) repository. Much of the original code has been changed so the name of the repo has has changed to reflect the updated content. However, the original codes has been kept to work together with the new addition. The base code implemented the semantic segmentation task using the [DeepLabV3 model](https://arxiv.org/pdf/1706.05587.pdf). Panoptic segmentation is a unification of sementatic segmentation and instance segmentation, so the added implementation is an extension of the semantic segmentaion task to to include instance segmentation in the same model. A fusion of these two tasks gives the final panoptic output. See the [Panoptic segmentation paper](https://arxiv.org/abs/1801.00868) paper for more details on this concept.
 
 ## Solution Pipeline
 
-We already have a semantic segmentation branch of DeepLabV3+, so the rest of the pipeline will be as follows;
+We already have a semantic segmentation branch from the DeepLabV3+, so the rest of the pipeline is as follows;
 
 - [X] Add an instance decoder head
-- [X] Groundtruth instance centers encoding by a 2D Gaussian with standard deviation of 8 pixels
-- [X] Add compound loss(criterion) function.
-- [X] Panoptic Dataloader for Citiscapes
-- [X] Apply 5×5 depthwise-separable convolution. (Not as in the paper)
+- [X] Groundtruth instance centers prediction encoding by a 2D Gaussian with standard deviation of 8 pixels
+- [X] Groundtruth instance centers regression
+- [X] Add multitask loss(criterion) function, for center prediction and center regression.
+- [X] Panoptic Dataloader for Cityscapes dataset
 - [X] Test training with slim backbone (mobileNet), and
-- [X] Training with xception backbone
+- [X] Training with Xception backbone
+
+The [environment.yml](environment.yml) file includes the python packages needed to run the training and other scripts in the repository. This can be installed using Anaconda.
+
+## Explanation of main scripts
+
+- **[train_panoptic.py](train_panoptic.py)**: The main script to train panoptic segmentation. Run `python train_panoptic.py --help` to see the scrip usage and all the training options.
+
+- **[inference_panoptic.py](inference_panoptic.py)**: The script for predicting instanceID images for the test dataset.
+
+
+
 
 ## Running on google cloud platform
 
-Cityscapes dataset can be downloaded to a cloud platform as explained [here](https://github.com/reger-men/keras_multi_gpus/wiki/How-to-download-cityscapes-dataset-via-terminal). Install Anaconda environment with the `environment.yml` file.
+The Cityscapes dataset can be downloaded to a cloud platform as explained [here](https://github.com/reger-men/keras_multi_gpus/wiki/How-to-download-cityscapes-dataset-via-terminal).
 
 
 ---

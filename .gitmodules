@@ -1,0 +1,6 @@
+[submodule "panopticapi"]
+	path = panopticapi
+	url = https://github.com/cocodataset/panopticapi.git
+[submodule "cityscapesScripts"]
+	path = cityscapesScripts
+	url = https://github.com/mcordts/cityscapesScripts.git

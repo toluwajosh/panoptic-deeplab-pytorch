@@ -161,7 +161,7 @@ class Tester(object):
         """
 
         self.model.eval()
-        tbar = tqdm(self.val_loader, desc="\r")
+        tbar = tqdm(self.test_loader, desc="\r")
         test_loss = 0.0
         for i, (sample, filepath) in enumerate(tbar):
             new_filepath = filepath[0].replace(
@@ -210,8 +210,8 @@ class Tester(object):
 
             # 2. get the instances IDs
             center_pred = center_pred[0]
-            x_offset_pred = x_offset_pred[0]  / 4
-            y_offset_pred = y_offset_pred[0]  / 2
+            x_offset_pred = x_offset_pred[0] / 4
+            y_offset_pred = y_offset_pred[0] / 2
 
             # 3. get the instances IDs
             instances = self.get_instances(
@@ -240,27 +240,17 @@ class Tester(object):
             final_instance_image = (
                 final_instance_image[0].cpu().numpy().astype(np.int32)
             )
-            # # TODO: remove shows
-            # # print(filepath)
-            # img_tmp = self.resize_tensor(image[0])
-            # img_tmp = np.transpose(img_tmp.cpu().numpy(), axes=[1, 2, 0])
-            # img_tmp *= (0.229, 0.224, 0.225)
-            # img_tmp += (0.485, 0.456, 0.406)
-            # img_tmp *= 255.0
-            # img_tmp = img_tmp.astype(np.uint8)
-
-            # plt.subplot(121)
-            # plt.imshow(img_tmp)
-            # plt.subplot(122)
-            # plt.imshow(final_instance_image)
-            # plt.show()
-            # continue
 
             instance_image = Image.fromarray(final_instance_image, "I")
             instance_image.save(save_filepath)
 
     def get_instances(
-        self, semantic_labels, center, x_offset, y_offset, center_threshold=250
+        self,
+        semantic_labels,
+        center,
+        x_offset,
+        y_offset,
+        center_threshold=(256 - 64),
     ):
         mask = torch.zeros_like(semantic_labels)
         for num in self.things_category:
@@ -293,10 +283,8 @@ class Tester(object):
         offsetted_pixloc_x = gridx + x_offset
         offsetted_pixloc_y = gridy + y_offset
 
-        # get indices of center points TODO: ensure correct axis
+        # get indices of center points
         center_points = centers_select.nonzero()
-        # TODO: remove
-        print(center_points.shape)
 
         if center_points.shape[0] < 1:
             return torch.zeros_like(semantic_labels[0]).cuda()
@@ -317,12 +305,6 @@ class Tester(object):
             mask.cuda() == 0, torch.zeros_like(instances), instances,
         )
 
-        # TODO: remove
-        # for debug:
-        # show_image = centers_select[0].cpu().numpy()
-        # plt.imshow(show_image)
-        # plt.show()
-        # exit(0)
         return instances
 
 

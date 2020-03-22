@@ -7,6 +7,7 @@ from mypath import Path
 from torchvision import transforms
 from dataloaders import custom_transforms as tr
 import cv2
+import random
 
 
 try:
@@ -459,24 +460,37 @@ class CityscapesPanoptic(data.Dataset):
         ]
 
     def transform_tr(self, sample):
-        composed_transforms = transforms.Compose(
-            [
-                # TODO: remove commented for final
-                # tr.RandomHorizontalFlip(),
-                # tr.RandomScaleCrop(
-                #     base_size=self.args.base_size,
-                #     crop_size=self.args.crop_size,
-                #     fill=255,
-                # ),
-                tr.FixedResize(size=self.args.crop_size),
-                tr.RandomGaussianBlur(),
-                tr.Normalize(
-                    mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
-                ),
-                tr.ToTensor(),
-            ]
-        )
+        if random.random() > 0.5:
+            if random.random() > 0.5:
+                tr_function = tr.FixScaleCrop
+            else:
+                tr_function = tr.FixedResize
 
+            composed_transforms = transforms.Compose(
+                [
+                    tr_function(self.args.crop_size),
+                    tr.RandomGaussianBlur(),
+                    tr.Normalize(
+                        mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
+                    ),
+                    tr.ToTensor(),
+                ]
+            )
+        else:
+            composed_transforms = transforms.Compose(
+                [
+                    tr.RandomScaleCrop(
+                        base_size=self.args.base_size,
+                        crop_size=self.args.crop_size,
+                        fill=255,
+                    ),
+                    tr.RandomGaussianBlur(),
+                    tr.Normalize(
+                        mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
+                    ),
+                    tr.ToTensor(),
+                ]
+            )
         return composed_transforms(sample)
 
     def transform_val(self, sample):
@@ -490,8 +504,7 @@ class CityscapesPanoptic(data.Dataset):
                 tr.ToTensor(),
             ]
         )
-        # TODO: resolve for final, should be without the addition
-        return composed_transforms(sample)  # , self.file_path
+        return composed_transforms(sample)
 
     def transform_ts(self, sample):
 

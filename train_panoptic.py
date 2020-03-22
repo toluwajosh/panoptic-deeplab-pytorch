@@ -89,14 +89,6 @@ class Trainer(object):
 
         # Define Evaluator
         self.evaluator = Evaluator(self.nclass)
-        # Define lr scheduler
-        # self.scheduler = LR_Scheduler(
-        #     args.lr_scheduler,
-        #     args.lr,
-        #     args.epochs,
-        #     len(self.train_loader),
-        #     lr_step=args.lr_step,
-        # )
         self.scheduler = ReduceLROnPlateau(
             optimizer, mode="max", factor=0.89, patience=2, verbose=True
         )
@@ -160,12 +152,11 @@ class Trainer(object):
                     x_reg.cuda(),
                     y_reg.cuda(),
                 )
-            # self.scheduler(self.optimizer, i, epoch, self.best_pred)
             self.optimizer.zero_grad()
             try:
                 output = self.model(image)
             except ValueError as identifier:
-                # there was an error with wrong input size
+                # catch error with wrong input size
                 print("Error: ", identifier)
                 continue
             (
@@ -284,7 +275,7 @@ class Trainer(object):
                 try:
                     output = self.model(image)
                 except ValueError as identifier:
-                    # there was an error with wrong input size
+                    # catch error with wrong input size
                     print("Error: ", identifier)
                     continue
 
