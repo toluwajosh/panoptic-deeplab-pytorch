@@ -15,6 +15,13 @@ We already have a semantic segmentation branch from the DeepLabV3+, so the rest 
 - [X] Training with Xception backbone
 - [ ] Training with COCO dataset
 
+## Trained models
+
+Download trained models from the following links.
+
+- [Panoptic-deeplab Xception (PQ - 28%)](https://drive.google.com/open?id=1imRlgQANhtaNcUAFFl-bUy3kjQDL-1Dp)
+- [Panoptic-deeplab Mobilenet (PQ - )](#)
+
 The [environment.yml](environment.yml) file includes the python packages needed to run the training and other scripts in the repository. This can be installed using Anaconda.
 
 ## Explanation of main scripts
